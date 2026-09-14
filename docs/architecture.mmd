@@ -6,27 +6,33 @@ flowchart TB
   classDef data fill:#F5F5F5,stroke:#4B5563,color:#111827,stroke-width:2px
   classDef guard fill:#FFE8E8,stroke:#B42318,color:#5F0B05,stroke-width:2px
 
-  Priya["Priya<br/>constraints + explicit approvals"]:::human
-  UI["React curated-case demo<br/>no unrestricted uploads"]:::edge
-  API["FastAPI BFF · AWS App Runner<br/>limits · SSE · session binding"]:::edge
-  AC["Amazon Bedrock AgentCore Runtime<br/>trace + isolated execution"]:::agent
-  Supervisor["Strands SuperShield Supervisor<br/>plan · delegate · pause · selective rerun"]:::agent
+  Human["Human reviewer<br/>constraints + explicit approvals"]:::human
+  Browser["React curated-case demo<br/>12 synthetic cases only"]:::edge
 
-  subgraph BoundedTools["Bounded specialist graph"]
-    Evidence["Evidence Collector<br/>claims + page citations + hashes"]:::tool
-    Skeptic["Skeptic<br/>contradictions + disconfirming evidence"]:::tool
-    Finance["Deterministic Finance<br/>Decimal formulas + seeded scenarios"]:::tool
-    Location["Location Risk<br/>synthetic density + radius"]:::tool
-    Validator["Evidence Validator<br/>no evidence → unresolved"]:::guard
-    Approval["Human Approval Tool<br/>action + payload hash + expiry"]:::guard
+  subgraph EC2["Amazon EC2 · t4g.large · direct HTTP"]
+    Nginx["Rate-limited nginx<br/>public TCP 80 · security headers"]:::edge
+    API["FastAPI BFF<br/>session binding · SSE · expiry"]:::edge
+    Supervisor["Strands SuperShield Supervisor<br/>bounded coordination"]:::agent
+    Ollama["Private Ollama<br/>qwen3:8b-q4_K_M"]:::agent
+    Memory[("In-memory case/run state<br/>ephemeral by design")]:::data
+
+    subgraph Tools["Authoritative bounded tools"]
+      Evidence["Evidence Collector<br/>claims + citations + hashes"]:::tool
+      Skeptic["Skeptic<br/>contradictions + missing support"]:::tool
+      Finance["Deterministic Finance<br/>Decimal scenarios"]:::tool
+      Location["Location Risk<br/>synthetic screening"]:::tool
+      Validator["Evidence Validator<br/>no evidence → unresolved"]:::guard
+      Approval["Human Approval Tool<br/>payload hash + expiry"]:::guard
+    end
   end
 
-  Packet["Auditable Decision Packet<br/>review state · findings · calculations · provenance"]:::edge
-  DDB[("DynamoDB<br/>case/run state · TTL")]:::data
-  S3[("Encrypted S3<br/>temporary evidence · 1-day lifecycle")]:::data
-  CW[("CloudWatch + OTel/X-Ray<br/>events, metrics, traces; no CoT")]:::data
+  SSM["AWS Systems Manager<br/>administration · no SSH"]:::data
+  EventBridge["Amazon EventBridge<br/>2026-10-16 06:00 UTC"]:::guard
+  Lambda["AWS Lambda<br/>terminate exact instance"]:::guard
 
-  Priya --> UI --> API --> AC --> Supervisor
+  Human --> Browser
+  Browser -->|HTTP · synthetic data only| Nginx --> API --> Supervisor
+  Supervisor <--> Ollama
   Supervisor --> Evidence
   Supervisor --> Skeptic
   Supervisor --> Finance
@@ -35,11 +41,8 @@ flowchart TB
   Skeptic --> Validator
   Finance --> Validator
   Location --> Validator
-  Validator -->|supported or unresolved| Supervisor
-  Supervisor -->|draft/export request| Approval
-  Approval -->|exact payload approved| Supervisor
-  Supervisor --> Packet --> API --> UI --> Priya
-  Supervisor <--> DDB
-  Evidence <--> S3
-  AC -. structured telemetry .-> CW
-  API -. structured telemetry .-> CW
+  Validator --> Supervisor
+  Supervisor --> Approval --> API
+  API <--> Memory
+  SSM -. manages .-> EC2
+  EventBridge --> Lambda -->|terminate instance + root EBS| EC2

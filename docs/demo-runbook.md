@@ -6,8 +6,8 @@ This runbook keeps the Agents for Humans demonstration reproducible and safe. Th
 
 1. Record the exact Git commit, deployment region, model IDs, UTC time, and public URLs.
 2. Run tests, the oracle harness, and a dated HTTP benchmark. Archive the JSON output without secrets.
-3. Confirm the App Runner health endpoint and all twelve `/demo-cases` entries in a logged-out browser.
-4. Confirm the budget subscription, ECR scan, log retention, DynamoDB TTL, S3 lifecycle/public block, KMS encryption, and App Runner max size.
+3. Confirm the live EC2 health endpoint and all twelve `/demo-cases` entries in a logged-out browser.
+4. Confirm TCP 80 is the only ingress rule, IMDSv2 is required, the root volume is encrypted and delete-on-termination, and the EventBridge/Lambda cutoff is enabled for 2026-10-16 06:00 UTC.
 5. Delete any old cases and inspect logs for source text, tokens, email addresses, account IDs, and private reasoning.
 6. Set browser zoom and OS scaling so citations remain legible at 1080p. Enable captions.
 
@@ -32,8 +32,8 @@ Run `adversarial-copper-kite` and `adversarial-quiet-quill`. Verify the hostile 
 
 ## Failure fallback
 
-If cloud inference fails, show the safe failure state and a previously generated dated trace/report from the same public commit. You may demonstrate deterministic local mode, but label it clearly. Never claim the oracle adapter is a live Strands or AgentCore result. Avoid switching to an unrelated branch or private environment during the recording.
+If cloud inference fails, show the safe fallback state and a previously generated dated trace/report from the same public commit. You may demonstrate deterministic local mode, but label it clearly. Never claim the oracle adapter is a live Strands result. Avoid switching to an unrelated branch or private environment during the recording.
 
 ## After the demo
 
-Delete the demo case through the API, verify it is no longer readable, and confirm no sensitive fields reached logs. Note AWS spend. If the public endpoint will remain available, keep the budget, rate limits, alarms, and monitoring active; otherwise delete App Runner and AgentCore resources first and follow `infra/README.md` teardown guidance.
+Delete the demo case through the API, verify it is no longer readable, and confirm no sensitive fields reached logs. Note AWS spend. If the public endpoint remains available, keep nginx rate limiting and the EventBridge/Lambda cutoff enabled. Otherwise run the exact-stack teardown in `infra/EC2_OLLAMA_DEPLOYMENT.md`. The endpoint is HTTP-only and must never receive real or sensitive data.

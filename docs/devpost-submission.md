@@ -45,14 +45,15 @@ Saffron Route's brochure says “typical” kitchens reach $1.2 million in annua
 ## How we built it
 
 - **Strands Agents SDK (Python):** the real supervisor delegates to evidence, skepticism, finance, location, validation, and approval capabilities as bounded tools.
-- **Ollama + `qwen3:0.6b`:** the verified local Strands provider, allowing a complete agent demonstration without Bedrock account access.
-- **Amazon Bedrock / Amazon Nova adapter:** a configuration-driven provider path ready for use when the AWS account's temporary Bedrock verification clears.
-- **Bedrock AgentCore Runtime entrypoint and infrastructure:** deployment-ready source and least-privilege templates; not claimed as a live deployment in the current demo.
-- **FastAPI + Server-Sent Events:** exposes the constrained workflow and safe progress updates; App Runner templates are included as an optional AWS deployment path.
+- **Ollama + `qwen3:8b-q4_K_M`:** the live Strands provider on an AWS Graviton `t4g.large`, private to the instance's Docker network.
+- **Amazon EC2 + nginx:** one short-lived instance serves the React/FastAPI origin through a rate-limited HTTP gateway; Systems Manager provides administration without SSH.
+- **AWS CloudFormation + EventBridge + Lambda:** reproducible infrastructure with a fixed 2026-10-16 06:00 UTC compute-termination guardrail.
+- **Amazon Bedrock / Amazon Nova and Bedrock AgentCore:** optional provider and deployment assets for future use; they are not part of the live demo.
+- **FastAPI + Server-Sent Events:** exposes the constrained workflow and safe progress updates.
 - **React:** presents constraints, plan, agent activity, evidence relationships, scenario changes, approval, and the Decision Packet.
-- **DynamoDB + encrypted S3 templates:** optional short-lived cloud state and evidence with TTL/lifecycle deletion.
+- **In-memory state + curated fixtures:** the live deployment accepts no unrestricted uploads and retains no durable case database. Optional DynamoDB and encrypted S3 templates remain for a future architecture.
 
-The default deterministic mode mirrors the same bounded tool graph for fast replay. The verified Strands/Ollama mode invokes the actual SDK locally, while deterministic code remains authoritative for evidence validation and arithmetic.
+The default deterministic mode mirrors the same bounded tool graph for fast replay. The verified live Strands/Ollama mode invokes the actual SDK on EC2, while deterministic code remains authoritative for evidence validation and arithmetic.
 
 ## Why this needs an agent
 
@@ -60,7 +61,7 @@ The task is not one prompt over one document. Findings depend on multiple source
 
 ## Human control and security
 
-Evidence is untrusted input. Two benchmark documents explicitly try to change policy, reveal an approval token, send data externally, and sign an agreement. They cannot add tools, alter thresholds, access secrets, or create approval. Approval is bound to the exact action, payload hash, case, session, and expiry. The public demo has no unrestricted upload, arbitrary recipient, payment, signature, purchase, or production-integration capability. Case data expires after 24 hours; evidence after one day; logs after 14 days.
+Evidence is untrusted input. Two benchmark documents explicitly try to change policy, reveal an approval token, send data externally, and sign an agreement. They cannot add tools, alter thresholds, access secrets, or create approval. Approval is bound to the exact action, payload hash, case, session, and expiry. The public demo has no unrestricted upload, arbitrary recipient, payment, signature, purchase, or production-integration capability. Live state is in memory, cases expire after 24 hours, and an app or instance restart clears all case state. The optional S3/DynamoDB design has separate lifecycle controls but is not deployed.
 
 ## Evaluation
 
@@ -79,7 +80,7 @@ The versioned suite contains exactly twelve fictional cases: four clean, four co
 - Mean / p95 latency: `93.41 ms / 98.70 ms`
 - Inference cost: `$0` because this measured run used deterministic local mode
 
-A separate flagship run completed through the real Strands Agents SDK with Ollama `qwen3:0.6b` and no provider error. These are not Bedrock or AgentCore performance claims. The repository's oracle mode validates the harness and arithmetic and is explicitly excluded from system-performance claims.
+A separate live Priya run on release `79930702cfc740b51fe84b16a89eda43148314a1` completed through the real Strands Agents SDK and Ollama `qwen3:8b-q4_K_M` without fallback. It emitted the SSE `done` event and produced a valid `MORE_EVIDENCE_REQUIRED` packet with 6 findings, 4 scenarios, 29 evidence-index entries, and 2 human checkpoints. This is not a Bedrock or AgentCore performance claim. The dated metrics above remain local deterministic measurements; the repository's oracle mode is excluded from system-performance claims.
 
 ## Challenges
 
@@ -91,7 +92,8 @@ The hardest design choice was refusing to let fluent synthesis become authority.
 - Page-level provenance and a readable “Why this changed” history.
 - Exact approval binding with no real-world commitment tools.
 - Reproducible synthetic benchmark, including hostile evidence.
-- Deployable AgentCore/App Runner architecture with least-privilege IAM, encryption, expiry, observability, immutable releases, and a budget.
+- A verified live EC2/Ollama deployment with SSM-only administration, encrypted storage, rate limiting, synthetic-only inputs, and scheduled compute termination.
+- Optional AgentCore/App Runner architecture retained for future Bedrock-enabled deployment.
 
 ## What we learned
 
@@ -104,7 +106,7 @@ After the competition, we would add expert-configurable policy packs, jurisdicti
 ## Links
 
 - Public repository: `https://github.com/alpha-kapex/SuperShield`
-- Live constrained demo: `[VERIFY: App Runner URL]`
+- Live constrained demo: [http://ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com) — HTTP-only; synthetic fixtures only
 - Demo video (under five minutes): `[VERIFY: video URL]`
 - AWS Builder article: `[VERIFY: published article URL]`
 - Architecture: `docs/architecture.svg`
@@ -112,7 +114,7 @@ After the competition, we would add expert-configurable policy packs, jurisdicti
 
 ## Built with
 
-Python, Strands Agents SDK, Ollama, Qwen3, FastAPI, React, TypeScript, Docker, and CloudFormation, with optional adapters and deployment assets for Amazon Bedrock, Amazon Nova, Bedrock AgentCore Runtime, AWS App Runner, DynamoDB, Amazon S3, AWS KMS, Amazon ECR, and CloudWatch.
+Python, Strands Agents SDK, Ollama, Qwen3, FastAPI, React, TypeScript, Docker, nginx, AWS CloudFormation, Amazon EC2, AWS Systems Manager, Amazon EventBridge, and AWS Lambda. Optional, not-live assets cover Amazon Bedrock, Amazon Nova, Bedrock AgentCore Runtime, AWS App Runner, DynamoDB, Amazon S3, AWS KMS, Amazon ECR, and CloudWatch.
 
 ## Attribution and license
 

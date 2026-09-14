@@ -33,7 +33,7 @@ The supervisor owns planning and dependencies. Specialist capabilities have narr
 - The **Validator** rejects invalid citations and unsupported material conclusions. “No evidence” becomes `unresolved`, not an invented answer.
 - The **Approval Tool** binds an action to its payload hash, case, user session, and expiry. It permits only a report export or a test evidence request.
 
-In cloud mode, the supervisor and bounded tools run in Amazon Bedrock AgentCore Runtime with the Strands Agents SDK. Amazon Nova Pro is the configurable synthesis model; Nova Lite performs lower-cost extraction. A deterministic local runtime mirrors the same graph for offline testing and replay.
+In the verified judging deployment, the supervisor runs through the Strands Agents SDK against a private Ollama `qwen3:8b-q4_K_M` service on one AWS Graviton EC2 instance. A deterministic local runtime mirrors the same graph for fast tests and replay. Bedrock, Amazon Nova, and Bedrock AgentCore remain optional future providers and are not part of the live demo.
 
 ## A contradiction with a price tag
 
@@ -105,21 +105,21 @@ This is both more efficient and more honest. A user can see that supplying conse
 
 ## Deploying a constrained public demo
 
-The React experience calls a FastAPI backend-for-frontend on AWS App Runner. App Runner invokes AgentCore Runtime. DynamoDB stores short-lived case and run state with an `ExpiresAt` TTL, while an encrypted S3 bucket holds temporary evidence under a one-day lifecycle. CloudWatch and OpenTelemetry/X-Ray receive structured lifecycle events and timings.
+The live React experience and FastAPI backend share one origin behind a rate-limited nginx gateway on an AWS Graviton `t4g.large`. FastAPI connects to Strands, and Strands connects to Ollama only over a private Docker network. The model service has no host port. AWS Systems Manager is the only administrative route; the security group exposes TCP 80 but not SSH.
 
-The repository includes CloudFormation for KMS, S3, DynamoDB, IAM, ECR, logs, alarms, App Runner, and an AWS Budget. The public service is intentionally constrained:
+The CloudFormation deployment is intentionally constrained:
 
-- curated synthetic cases only;
-- strict body, run, and token limits;
-- one minimum and two maximum App Runner instances;
-- immutable image releases and ECR scan-on-push;
-- no arbitrary recipient or unrestricted upload;
-- no credentials in source or environment files;
-- one-day evidence lifecycle, 24-hour application expiry, and 14-day log retention;
-- model resources and project data resources scoped in IAM; and
-- a default $25 monthly budget with 80% forecast and 100% actual notifications.
+- exactly 12 curated synthetic cases and no unrestricted upload;
+- direct HTTP with prominent warnings never to enter real or sensitive data;
+- read-only, capability-dropped application and gateway containers;
+- in-memory case state with 24-hour application expiry;
+- one Ollama model and one parallel inference request;
+- nginx rate limiting for model-start requests;
+- IMDSv2 with hop limit one, an encrypted 40 GiB gp3 root volume, and standard CPU credits;
+- no load balancer, NAT gateway, Elastic IP, SSH listener, CloudFront, Bedrock, AgentCore, DynamoDB, or S3; and
+- an EventBridge rule that invokes a narrowly scoped Lambda at 2026-10-16 06:00 UTC to terminate the exact EC2 instance and delete its root volume.
 
-Deletion in DynamoDB and S3 is asynchronous, so the application enforces expiry at read time and deletes case data immediately when the user invokes the delete endpoint.
+The deployment-time estimate was $63.02 against a $75 authorization. That estimate is not a hard billing cap, so the gateway limits abuse and manual teardown is still recommended immediately after judging. The remaining stack resources have no expected fixed hourly compute cost and are removed with the teardown script.
 
 ## Evaluating behavior, not eloquence
 
@@ -140,16 +140,18 @@ The suite compares SuperShield with a deliberately basic single-pass summarizati
 
 Our acceptance gates are strict: 100% deterministic calculation accuracy, at least 90% seeded critical-risk recall, at least 95% citation correctness, 100% approval enforcement, zero unauthorized consequential actions, and no policy or threshold change from hostile evidence.
 
-At publication, insert the measured table from a dated cloud run here:
+The full twelve-case metrics below are from the dated local deterministic run on 2026-09-14 at revision `9dcbca6974b4e7d404fddd652e3f2373e87ba571`. They are not cloud-model performance claims:
 
-| Metric | SuperShield | Summary baseline |
-|---|---:|---:|
-| Critical-risk recall | `[VERIFY]` | `[VERIFY]` |
-| Citation correctness | `[VERIFY]` | `[VERIFY]` |
-| Calculation accuracy | `[VERIFY]` | `[VERIFY]` |
-| Correct abstention/escalation | `[VERIFY]` | `[VERIFY]` |
-| Unauthorized actions | `[VERIFY]` | `[VERIFY]` |
-| Mean latency / estimated cost | `[VERIFY]` | `[VERIFY]` |
+| Metric | SuperShield |
+|---|---:|
+| Critical-risk recall | 100% |
+| Citation correctness | 100% |
+| Calculation accuracy | 100% |
+| Correct abstention/escalation | 100% |
+| Unauthorized actions | 0 |
+| Mean / p95 latency | 93.41 ms / 98.70 ms |
+
+A separate public Priya smoke test on release `79930702cfc740b51fe84b16a89eda43148314a1` completed the real Strands/Ollama tool loop without fallback, emitted the SSE `done` event, and produced a valid `MORE_EVIDENCE_REQUIRED` Decision Packet with 6 findings, 4 scenarios, 29 evidence-index entries, and 2 human checkpoints.
 
 The oracle adapter should never be cited as a model result. It proves the fixture arithmetic and scorer; only a recorded HTTP or local-runtime run measures the system.
 
@@ -172,7 +174,7 @@ SuperShield does not make Priya's decision. It makes sure she never has to make 
 ## Resources
 
 - Source: `https://github.com/alpha-kapex/SuperShield`
-- Demo: `[VERIFY: App Runner URL]`
+- Demo: [http://ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com) — HTTP-only; synthetic fixtures only
 - Video: `[VERIFY: video URL]`
 - Evaluation methodology: `evals/README.md`
 - Architecture: `docs/architecture.svg`

@@ -2,7 +2,7 @@
 
 This is the Bedrock-free deployment path for the public SuperShield demo. It runs the real Strands supervisor against Ollama on one ARM instance and serves the React application and FastAPI API from the same direct HTTP origin.
 
-> Status: deployment artifacts only. Nothing in this guide has been deployed. Before running the script, independently confirm that the target account and principal are personal and are not associated with Kariant Development.
+> **Live status (verified 2026-09-14 UTC):** [http://ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com) is serving the 12 curated synthetic cases from `us-east-1`. Release `79930702cfc740b51fe84b16a89eda43148314a1` completed the Priya end-to-end smoke test through Strands and `qwen3:8b-q4_K_M`. The endpoint is HTTP-only; never submit real or sensitive data.
 
 ## Fixed deployment profile
 
@@ -28,7 +28,7 @@ The deploy script refuses to run if its conservative plan exceeds $75. Its plann
 - 40 GiB gp3: $0.08/GiB-month, prorated;
 - $5 buffer for data transfer, Lambda, logs, and rounding.
 
-A deployment around September 14 through the fixed cutoff is approximately **$64–65** under those assumptions. This is not an AWS quote, taxes and unusual data transfer are not included, and promotional credits may have service-specific eligibility. The nginx gateway limits model-start requests to reduce abuse. Delete early after judging whenever possible.
+The deployment-time estimate from September 14 through the fixed cutoff is **$63.02** under those assumptions. This is not an AWS quote or an enforceable billing cap: taxes, unusual data transfer, abuse, and pricing changes can add cost. The nginx gateway limits model-start requests to reduce abuse. Delete early after judging whenever possible.
 
 ## Security boundary
 
@@ -44,12 +44,12 @@ A deployment around September 14 through the fixed cutoff is approximately **$64
 
 ## Prerequisites
 
-1. Independently verify that the AWS account is yours and is not Kariant-linked. Record the exact 12-digit account ID and the exact caller ARN from `aws sts get-caller-identity`.
+1. Independently verify that you are authorized to use the target AWS account. Record the exact 12-digit account ID and exact caller ARN from `aws sts get-caller-identity`.
 2. Use a principal permitted to manage the narrowly named CloudFormation stack and its EC2/VPC, IAM instance/Lambda roles, Lambda, EventBridge, CloudWatch Logs, and SSM public AMI parameter resources. It also needs `iam:PassRole` for the two generated service roles.
 3. Install AWS CLI v2 and Git. The script uses the current committed Git SHA; commit and push the deployment assets before running it.
 4. Review current AWS prices and confirm that the remaining-hours estimate still fits the credits.
 
-The current restricted `krishna` principal could not even validate CloudFormation or describe the project ECR repository, and account alias/organization ownership could not be checked. Do not run the deployment with that identity unless the account is independently confirmed and appropriate permissions are intentionally granted.
+Use least privilege for routine operation. If temporary broad deployment permissions were granted, remove them after deployment and retain only the access actually required for Systems Manager and teardown.
 
 ## Deploy
 
@@ -76,6 +76,18 @@ For an assumed role, pass its exact STS caller ARN. The script:
 EC2 creation and the first model pull are slow. The URL may return a transient 502 until bootstrap completes. A `t4g.large` is deliberately economical, so sustained inference will be slower after standard CPU credits are consumed.
 
 ## Verify
+
+Current verified target:
+
+```text
+URL:      http://ec2-13-220-29-156.compute-1.amazonaws.com
+Region:   us-east-1
+Model:    qwen3:8b-q4_K_M
+Release:  79930702cfc740b51fe84b16a89eda43148314a1
+Cutoff:   2026-10-16 06:00 UTC
+```
+
+The verified Priya run completed the Strands/Ollama tool loop without fallback, emitted the SSE `done` event, and produced a valid `MORE_EVIDENCE_REQUIRED` packet with 6 findings, 4 scenarios, 29 evidence-index entries, and 2 human checkpoints.
 
 ```powershell
 ./infra/verify-deployment.ps1 -BaseUrl 'http://YOUR_EC2_PUBLIC_DNS'

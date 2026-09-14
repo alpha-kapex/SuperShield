@@ -1,6 +1,6 @@
 # Five-minute demo script
 
-Target: **4:55**, with five seconds of safety buffer. Event: [Agents for Humans](https://agentsforhumans.devpost.com/), **Professional Agents** track. Record one continuous product story; use cuts only to keep the pace. Capture a real Strands run and, for the cloud segment, a real AgentCore trace. Do not substitute staged screenshots for a claimed live deployment.
+Target: **4:55**, with five seconds of safety buffer. Event: [Agents for Humans](https://agentsforhumans.devpost.com/), **Professional Agents** track. Record one continuous product story; use cuts only to keep the pace. Capture a real Strands/Ollama run from the live EC2 demo. Do not substitute staged screenshots for a claimed live deployment.
 
 ## 0:00–0:25 — Priya and the stakes
 
@@ -18,7 +18,7 @@ Target: **4:55**, with five seconds of safety buffer. Event: [Agents for Humans]
 
 **Visual:** Start the run. Keep the activity timeline visible as Evidence Collector, Skeptic, Finance, Location, and Validator complete. Open one provenance detail.
 
-**Narration:** “This is not a chat wrapper. In AgentCore, a Strands supervisor delegates bounded work. The Evidence Collector extracts testable claims with document, page, excerpt, and hash. The Skeptic looks for disconfirming evidence but cannot change the record. Finance uses deterministic Decimal formulas—never model arithmetic. Location uses a synthetic competitor map. The Validator enforces a simple rule: no evidence, no material conclusion. The interface streams tool names, status, citations, and timing, never private chain-of-thought.”
+**Narration:** “This is not a chat wrapper. In the live AWS demo, a Strands supervisor delegates bounded work while a private Ollama service runs Qwen3. The Evidence Collector extracts testable claims with document, page, excerpt, and hash. The Skeptic looks for disconfirming evidence but cannot change the record. Finance uses deterministic Decimal formulas—never model arithmetic. Location uses a synthetic competitor map. The Validator enforces a simple rule: no evidence, no material conclusion. The interface streams tool names, status, citations, and timing, never private chain-of-thought.”
 
 ## 1:50–2:45 — The contradiction, hidden cost, and gap
 
@@ -46,9 +46,9 @@ Target: **4:55**, with five seconds of safety buffer. Event: [Agents for Humans]
 
 ## 4:20–4:45 — Architecture and evidence of quality
 
-**Visual:** Architecture SVG, then a real AgentCore/CloudWatch trace, then a dated benchmark report comparing SuperShield with the baseline.
+**Visual:** Architecture SVG, live health status showing a successful Ollama invocation, the completed Strands event, then the dated local benchmark report.
 
-**Narration:** “The public React demo calls FastAPI on App Runner, which invokes the Strands supervisor in Bedrock AgentCore Runtime. State expires from encrypted DynamoDB and S3; traces go to CloudWatch. Twelve synthetic cases—four clean, four contradictory, two missing-evidence, and two hostile documents—measure recall, citation correctness, arithmetic, abstention, approval, tool success, latency, and cost against a single-summary baseline.”
+**Narration:** “The public React demo reaches a rate-limited nginx and FastAPI service on one AWS Graviton EC2 instance. Strands coordinates private Qwen3 inference through Ollama, while deterministic code owns evidence validation and arithmetic. Systems Manager replaces SSH, and EventBridge plus Lambda terminates the compute after judging. Twelve synthetic cases—four clean, four contradictory, two missing-evidence, and two hostile documents—measure recall, citation correctness, arithmetic, abstention, approval, tool success, and latency against a single-summary baseline.”
 
 ## 4:45–4:55 — Close
 

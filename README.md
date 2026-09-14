@@ -8,6 +8,10 @@ Built for the [Agents for Humans](https://agentsforhumans.devpost.com/) hackatho
 
 > SuperShield does not recommend a purchase and does not provide legal, investment, accounting, lending, or site-selection advice. Its result is a preparation packet for human and expert review.
 
+**Live demo:** [http://ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com)
+
+The judging deployment is intentionally short-lived and accepts only the included synthetic cases. It is served over **HTTP without TLS**, so do not enter real, personal, confidential, or sensitive information.
+
 ![SuperShield architecture](docs/architecture.svg)
 
 ## The problem
@@ -35,7 +39,7 @@ This is a dependency-aware investigation, not one prompt over one document. A St
 | Validator | Verify citations, numbers, and evidence sufficiency | No evidence → unresolved material conclusion |
 | Approval | Bind an allowed action to payload hash, case, session, and expiry | No signature, purchase, payment, acceptance, or real-world commitment |
 
-SuperShield can run the graph through the real Strands Agents SDK with a local Ollama model, or through Amazon Bedrock when account access is available. The deterministic mode mirrors the same bounded tools for inspection, tests, and replay. Bedrock AgentCore is an optional deployment target, not a requirement for local operation or contest eligibility.
+The live demo runs the graph through the real Strands Agents SDK and a private Ollama service using `qwen3:8b-q4_K_M` on Amazon EC2. The deterministic mode mirrors the same bounded tools for inspection, tests, and replay. Amazon Bedrock and Bedrock AgentCore remain optional future providers; neither is part of the deployed demo.
 
 ## Flagship walkthrough
 
@@ -65,22 +69,25 @@ The interface is designed for keyboard navigation, visible focus, responsive lay
 ## Architecture
 
 ```text
-React curated-case demo
-        ↓
-FastAPI BFF on AWS App Runner
-        ↓
-Amazon Bedrock AgentCore Runtime
-        ↓
-Strands SuperShield Supervisor
+Browser · React curated-case demo
+        ↓ public HTTP (no TLS)
+Rate-limited nginx gateway · Amazon EC2
+        ↓ private container network
+FastAPI BFF → Strands SuperShield Supervisor
  ├─ Evidence Collector
  ├─ Skeptic / Contradiction Agent
  ├─ Deterministic Finance Tool
  ├─ Location-Risk Tool
  ├─ Evidence Validator
  └─ Human Approval Tool
-        ↓
-DynamoDB TTL + encrypted temporary S3 + CloudWatch/OTel
+        ↓                         ↓
+In-memory synthetic state        Private Ollama · qwen3:8b-q4_K_M
+
+AWS Systems Manager → administration (no SSH)
+EventBridge → Lambda → automatic EC2 termination on 2026-10-16 06:00 UTC
 ```
+
+This is the architecture currently deployed. It does **not** use CloudFront, Bedrock, AgentCore, S3, or DynamoDB. Those services appear only in clearly marked optional/future infrastructure materials.
 
 See the [architecture explanation](docs/architecture.md), [editable Mermaid](docs/architecture.mmd), and [standalone SVG](docs/architecture.svg).
 
@@ -91,7 +98,7 @@ src/supershield/   typed models, tools, orchestration, API, and AWS adapters
 web/               React/TypeScript public demo
 fixtures/          exactly 12 synthetic, page-addressable investigations
 evals/             generic API/local benchmark and baseline
-infra/             CloudFormation, AgentCore, App Runner, and deployment scripts
+infra/             live EC2/Ollama deployment plus optional future AWS templates
 docs/              architecture, security, demo, article, video, and submission assets
 tests/             deterministic, API, policy, approval, and adversarial tests
 ```
@@ -173,7 +180,7 @@ Approval and evidence-ingestion request bodies are documented by OpenAPI at `/do
 
 ## Configuration
 
-Local defaults are safe for a single developer. Cloud deployment should set every resource name explicitly.
+Local defaults are safe for a single developer. The live deployment overrides them for Strands, Ollama, public-demo restrictions, and in-memory storage. Bedrock, DynamoDB, and S3 settings below are optional and are not used by the live demo.
 
 | Variable | Purpose | Local default |
 |---|---|---|
@@ -227,19 +234,15 @@ Acceptance gates:
 
 Publish only a dated non-oracle result tied to its commit, region, and model IDs. The summarization baseline intentionally performs no investigation or deterministic calculation.
 
-## AWS deployment
+## Live AWS deployment
 
-The full ordered procedure is in [infra/README.md](infra/README.md). In outline:
+The public judging demo is live at [ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com). It uses one `t4g.large` EC2 instance with an encrypted 40 GiB gp3 root volume, a rate-limited nginx gateway, FastAPI, the Strands Agents SDK, and private Ollama inference with `qwen3:8b-q4_K_M`. State is intentionally in memory and only the repository's synthetic fixtures are available.
 
-AWS deployment is optional. An account that is still undergoing Bedrock verification can run and demonstrate the real Strands agent through Ollama, then deploy this same adapter when Bedrock access becomes available.
+Administration is through AWS Systems Manager; there is no SSH listener, load balancer, NAT gateway, or Elastic IP. EventBridge invokes a narrowly scoped Lambda to terminate the instance and delete its root volume at **2026-10-16 06:00 UTC**. The deployment-time estimate is **$63.02**, within the authorized $75 envelope. It is an estimate rather than a billing cap; early teardown remains preferable.
 
-1. Validate and deploy the core CloudFormation stack and mandatory budget.
-2. Deploy `supershield.integrations.agentcore:invoke` from `src/supershield/integrations/agentcore.py` to Bedrock AgentCore Runtime with the emitted least-privilege role.
-3. Build an immutable non-root container, push it to the scan-on-push ECR repository, and review findings.
-4. Deploy App Runner with the runtime ARN and exact browser origin.
-5. Run the smoke script and full HTTP benchmark; inspect the matching AgentCore/CloudWatch trace.
+The endpoint is direct HTTP without TLS. It is suitable only for this synthetic hackathon demo. Full verification and teardown instructions are in [infra/EC2_OLLAMA_DEPLOYMENT.md](infra/EC2_OLLAMA_DEPLOYMENT.md).
 
-The templates enable KMS encryption, S3 public blocking and one-day lifecycle, DynamoDB TTL and point-in-time recovery, short log retention, scoped IAM, ECR retention/scanning, X-Ray, capped App Runner scaling, an error alarm, and cost notifications.
+The repository also contains an optional future AgentCore/App Runner design. It is not deployed: the live demo uses no CloudFront, Bedrock, AgentCore, S3, or DynamoDB.
 
 ## Security and human control
 
@@ -250,9 +253,9 @@ See the [security model](docs/security.md) for threats and controls. Before publ
 ## Cost
 
 - Local deterministic mode: **$0 AWS cost**.
-- Cloud inference: `input tokens ÷ 1,000,000 × current input price + output tokens ÷ 1,000,000 × current output price`; the benchmark records adapter-reported cost per case. Verify current Nova and AgentCore pricing in the chosen region.
-- Hosting/storage: App Runner's provisioned instance can dominate idle cost; the template caps scaling at two instances but does not create a spending hard stop. DynamoDB on-demand, one-day S3 lifecycle, 14-day logs, and ten-image ECR retention keep demo storage bounded.
-- Guardrail: the included AWS Budget defaults to **$25/month**, notifying at 80% forecast and 100% actual. A budget is an alert, not a cap. Delete App Runner and AgentCore after the judging window if continuous availability is unnecessary.
+- Live judging deployment: **$63.02 estimated** from deployment through the fixed cutoff, including a conservative buffer, on-demand `t4g.large` compute, public IPv4, and 40 GiB gp3 storage. Actual AWS charges can differ with usage, transfer, taxes, and pricing changes.
+- Automatic cutoff: EventBridge/Lambda terminates the EC2 instance at **2026-10-16 06:00 UTC**; manual teardown can stop spend sooner.
+- Optional Bedrock/AgentCore architecture: not deployed and not included in the live estimate.
 
 Do not quote the oracle adapter's zero cost as a cloud estimate.
 
@@ -262,8 +265,10 @@ Do not quote the oracle adapter's zero cost as a cloud estimate.
 - The location tool is a screening heuristic, not professional site selection or market research.
 - Model behavior is probabilistic in cloud mode; deterministic validation reduces but does not eliminate error.
 - The public demo is not multi-tenant production infrastructure and has no regulated-data compliance claim.
+- The live URL uses HTTP without TLS and must be used only with the included synthetic fixtures.
+- Live case and approval state is in memory and is lost on an application or instance restart.
 - It does not ingest unrestricted files, browse the web, contact arbitrary recipients, sign, pay, purchase, or integrate with a live franchise workflow.
-- DynamoDB TTL and S3 lifecycle deletion are asynchronous; application-level expiry and explicit deletion remain necessary.
+- DynamoDB TTL and S3 lifecycle behavior applies only to the optional future architecture, not the live EC2/Ollama deployment.
 - Cost and latency vary by region, model, retries, and AWS pricing.
 
 ## Submission materials

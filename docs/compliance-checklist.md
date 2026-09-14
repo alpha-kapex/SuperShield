@@ -19,11 +19,11 @@ Owners should attach a name, date, evidence URL, and reviewer to every checked r
 
 ## Required technology and working proof
 
-- [x] Strands Agents SDK is used structurally by the supervisor and agents-as-tools; see `src/supershield/strands_adapter.py` and `src/supershield/workflow.py`.
+- [x] Strands Agents SDK is used structurally by the supervisor and bounded tools; see `src/supershield/integrations/strands.py` and `src/supershield/workflow.py`.
 - [x] Local end-to-end tests cover evidence intake, planning, delegation, contradiction, deterministic finance, gap, approval, new evidence, selective rerun, and Decision Packet.
-- [x] Submission wording clearly labels the verified Ollama run as local and AgentCore/Bedrock deployment as optional and not yet live.
-- [ ] App Runner demo works in a logged-out browser and exposes only curated cases.
-- [ ] Nova model IDs, region, date, retry settings, and revision are recorded with benchmark results.
+- [x] Submission wording records the verified live EC2/Ollama run and labels AgentCore/Bedrock as optional and not deployed.
+- [x] EC2 demo works at <http://ec2-13-220-29-156.compute-1.amazonaws.com> and exposes all 12 curated cases.
+- [x] Ollama model `qwen3:8b-q4_K_M`, `us-east-1`, verification date, and release `79930702cfc740b51fe84b16a89eda43148314a1` are recorded.
 - [ ] Public API rate, body, run, token, origin, and session limits are verified.
 - [ ] `DELETE /cases/{caseId}` and expiry behavior are tested in the deployed environment.
 - [ ] Failure mode demonstrated: model/AWS timeout yields a safe error, no action, and preserved audit state.
@@ -51,17 +51,18 @@ Owners should attach a name, date, evidence URL, and reviewer to every checked r
 - [x] Automated tests cover approval replay, mutation, cross-case use, cross-session use, and expiry.
 - [x] Public demo has no unrestricted documents or arbitrary external recipients.
 - [ ] Verify logs contain no prompts, source bodies, secrets, tokens, email addresses, or private chain-of-thought.
-- [x] DynamoDB TTL, S3 lifecycle/encryption/public block, KMS rotation, log retention, ECR scan, capped App Runner scaling, and AWS Budget are configured.
+- [x] Live EC2 uses encrypted delete-on-termination gp3 storage, IMDSv2, SSM-only administration, container isolation, nginx rate limiting, and an enabled EventBridge/Lambda compute cutoff.
+- [x] DynamoDB, S3, KMS, ECR, App Runner, and Budget controls are retained as optional templates and are not claimed as live.
 - [ ] Confirm least-privilege IAM with AWS Access Analyzer or IAM Policy Simulator.
-- [ ] Verify TLS, security headers, CORS allowlist, dependency pinning, and container non-root/read-only behavior.
+- [x] Security headers, constrained CORS, dependency pinning, and non-root/read-only app and gateway containers verified. TLS is explicitly absent from the short-lived HTTP demo.
 - [ ] Publish contact and deletion instructions; do not collect production personal data for judging.
 
 ## Judging criteria evidence
 
 ### Technological Implementation
 
-- [ ] Show the Strands supervisor, bounded specialist tools, pause/resume, selective rerun, validator, and approval enforcement in one real trace.
-- [x] All measured results and demonstrations are explicitly labeled local; no live AgentCore claim is made.
+- [x] Live Priya smoke test completed through Strands/Ollama without fallback; SSE ended with `done` and the packet validation passed.
+- [x] Full-suite performance metrics remain explicitly labeled local; no live AgentCore or Bedrock claim is made.
 - [x] Deployment templates and reproducible evaluation commands are linked from `README.md`, `infra/README.md`, and `evals/README.md`.
 
 ### Design
@@ -93,7 +94,7 @@ Owners should attach a name, date, evidence URL, and reviewer to every checked r
 - [x] Devpost title, tagline, problem, implementation, challenges, accomplishments, lessons, and next steps completed in `docs/devpost-submission.md`.
 - [x] Public personal-account GitHub URL: <https://github.com/alpha-kapex/SuperShield>
 - [x] Benchmarked implementation commit: `9dcbca6974b4e7d404fddd652e3f2373e87ba571`
-- [ ] Live demo URL: `[VERIFY]`
+- [x] Live demo URL: <http://ec2-13-220-29-156.compute-1.amazonaws.com> (HTTP-only; synthetic fixtures only)
 - [ ] Video URL and duration: `[VERIFY]`
 - [ ] Architecture SVG renders from the public repository.
 - [ ] AWS Builder ID attached as required: `[VERIFY]`

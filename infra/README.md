@@ -1,8 +1,10 @@
 # AWS deployment
 
-For the short-lived, Bedrock-free live demo, use the standalone [EC2 + Ollama deployment](EC2_OLLAMA_DEPLOYMENT.md). It runs `qwen3:8b-q4_K_M` on one ARM `t4g.large`, exposes a short-lived direct HTTP demo URL, and has a fixed post-results cost cutoff. The AgentCore/App Runner path below remains an optional future architecture.
+The verified short-lived demo is live at [http://ec2-13-220-29-156.compute-1.amazonaws.com](http://ec2-13-220-29-156.compute-1.amazonaws.com). Follow the standalone [EC2 + Ollama deployment](EC2_OLLAMA_DEPLOYMENT.md): it runs `qwen3:8b-q4_K_M` on one ARM `t4g.large`, uses only curated synthetic fixtures, and terminates compute at 2026-10-16 06:00 UTC. The endpoint is direct HTTP without TLS, so never enter real or sensitive data.
 
-This deployment keeps the public surface small: App Runner exposes the FastAPI BFF, the BFF invokes the SuperShield supervisor in Amazon Bedrock AgentCore Runtime, and ephemeral state is encrypted in DynamoDB and S3. CloudWatch receives structured events and traces. The public demo loads only repository fixtures; it does not accept arbitrary uploads or external email recipients.
+## Optional AgentCore/App Runner architecture
+
+The remainder of this page documents an optional future design that is **not deployed**. In that design App Runner exposes the FastAPI BFF, the BFF invokes the SuperShield supervisor in Amazon Bedrock AgentCore Runtime, and ephemeral state is encrypted in DynamoDB and S3. The live demo does not use App Runner, AgentCore, Bedrock, DynamoDB, S3, or CloudFront.
 
 ## What is provisioned
 
