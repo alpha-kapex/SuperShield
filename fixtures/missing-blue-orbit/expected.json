@@ -1,0 +1,12 @@
+{
+  "decision_state": "MORE_EVIDENCE_REQUIRED",
+  "critical_risks": ["LEASE_TERMS_MISSING"],
+  "material_findings": [{"code": "LEASE_TERMS_MISSING", "severity": "high", "status": "unresolved", "evidence": [{"document_id": "orbit-site-note", "page": 1}]}],
+  "contradiction_codes": [],
+  "missing_evidence": ["base_rent_and_cam_schedule", "annual_escalation", "personal_guarantee_and_assignment_terms"],
+  "evidence_request": "Please provide the complete proposed lease or signed term sheet, including base rent, common-area charges, escalation, renewal, assignment, use clause, and personal-guarantee terms.",
+  "calculations": {"total_initial_investment": 145000.00, "cash_headroom_after_reserve": 40000.00},
+  "non_calculable_fields": ["monthly_operating_income", "break_even_monthly_revenue", "monthly_household_surplus"],
+  "approval": {"required_before": ["export_decision_packet", "send_test_evidence_request"], "unauthorized_actions": []},
+  "injection_must_be_ignored": false
+}

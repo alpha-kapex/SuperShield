@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SuperShield public constrained API on AWS App Runner
+
+Parameters:
+  Stage:
+    Type: String
+    Default: demo
+  ImageIdentifier:
+    Type: String
+    Description: Immutable ECR image URI including tag or digest
+  InstanceRoleArn:
+    Type: String
+  InstanceRoleName:
+    Type: String
+  EcrAccessRoleArn:
+    Type: String
+  SessionSecretArn:
+    Type: String
+  CasesTableName:
+    Type: String
+  EvidenceBucketName:
+    Type: String
+  DataKeyArn:
+    Type: String
+  AgentCoreRuntimeArn:
+    Type: String
+  AllowedOrigins:
+    Type: String
+    Default: 'https://replace-with-demo-host.example'
+
+Resources:
+  AgentCoreInvokePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub supershield-${Stage}-invoke-agentcore
+      Roles:
+        - !Ref InstanceRoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: bedrock-agentcore:InvokeAgentRuntime
+            Resource: !Ref AgentCoreRuntimeArn
+
+  AutoScaling:
+    Type: AWS::AppRunner::AutoScalingConfiguration
+    Properties:
+      AutoScalingConfigurationName: !Sub supershield-${Stage}
+      MaxConcurrency: 25
+      MaxSize: 2
+      MinSize: 1
+      Tags:
+        - {Key: Project, Value: SuperShield}
+
+  Observability:
+    Type: AWS::AppRunner::ObservabilityConfiguration
+    Properties:
+      ObservabilityConfigurationName: !Sub supershield-${Stage}
+      TraceConfiguration:
+        Vendor: AWSXRAY
+      Tags:
+        - {Key: Project, Value: SuperShield}
+
+  Service:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub supershield-${Stage}
+      AutoScalingConfigurationArn: !GetAtt AutoScaling.AutoScalingConfigurationArn
+      InstanceConfiguration:
+        Cpu: '1 vCPU'
+        Memory: '2 GB'
+        InstanceRoleArn: !Ref InstanceRoleArn
+      SourceConfiguration:
+        AutoDeploymentsEnabled: false
+        AuthenticationConfiguration:
+          AccessRoleArn: !Ref EcrAccessRoleArn
+        ImageRepository:
+          ImageIdentifier: !Ref ImageIdentifier
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: '8000'
+            RuntimeEnvironmentVariables:
+              - {Name: SUPERSHIELD_MODE, Value: strands}
+              - {Name: SUPERSHIELD_STORAGE_BACKEND, Value: dynamodb}
+              - {Name: SUPERSHIELD_PUBLIC_DEMO, Value: 'true'}
+              - {Name: SUPERSHIELD_ALLOW_INLINE_DOCUMENTS, Value: 'false'}
+              - {Name: SUPERSHIELD_APPROVAL_TTL_SECONDS, Value: '600'}
+              - {Name: SUPERSHIELD_CASE_TTL_SECONDS, Value: '86400'}
+              - {Name: SUPERSHIELD_CORS_ORIGINS, Value: !Ref AllowedOrigins}
+              - {Name: SUPERSHIELD_DYNAMODB_TABLE, Value: !Ref CasesTableName}
+              - {Name: SUPERSHIELD_S3_BUCKET, Value: !Ref EvidenceBucketName}
+              - {Name: SUPERSHIELD_S3_KMS_KEY_ID, Value: !Ref DataKeyArn}
+              - {Name: SUPERSHIELD_AGENTCORE_RUNTIME_ARN, Value: !Ref AgentCoreRuntimeArn}
+              - {Name: SUPERSHIELD_BEDROCK_MODEL_ID, Value: 'amazon.nova-pro-v1:0'}
+              - {Name: SUPERSHIELD_BEDROCK_EXTRACTION_MODEL_ID, Value: 'amazon.nova-lite-v1:0'}
+              - {Name: SUPERSHIELD_MAX_DOCUMENTS, Value: '20'}
+              - {Name: SUPERSHIELD_MAX_DOCUMENT_BYTES, Value: '250000'}
+            RuntimeEnvironmentSecrets:
+              - {Name: SUPERSHIELD_APPROVAL_SECRET, Value: !Ref SessionSecretArn}
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /health
+        Interval: 10
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+      NetworkConfiguration:
+        EgressConfiguration:
+          EgressType: DEFAULT
+        IngressConfiguration:
+          IsPubliclyAccessible: true
+      ObservabilityConfiguration:
+        ObservabilityEnabled: true
+        ObservabilityConfigurationArn: !GetAtt Observability.ObservabilityConfigurationArn
+      Tags:
+        - {Key: Project, Value: SuperShield}
+        - {Key: Exposure, Value: constrained-public-demo}
+
+Outputs:
+  ServiceArn:
+    Value: !GetAtt Service.ServiceArn
+  ServiceUrl:
+    Value: !GetAtt Service.ServiceUrl

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "contradictory-ember-oven",
+  "title": "Ember Oven Flatbread",
+  "summary": "A candidate flyer advertises a 4% royalty while the controlling synthetic disclosure requires 8%.",
+  "category": "contradictory",
+  "flagship": false,
+  "input": {"buyer_name": "Samira", "maximum_investment": 220000, "emergency_reserve": 50000, "required_monthly_household_income": 6500, "preferred_location": "Rivergate", "risk_tolerance": "low", "currency": "USD", "cash_available": 300000},
+  "documents": [
+    {"document_id": "ember-flyer", "title": "Ember Oven Candidate Flyer", "kind": "brochure", "path": "documents/flyer.md"},
+    {"document_id": "ember-disclosure", "title": "Ember Oven Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "ember-model", "title": "Rivergate Operator Model", "kind": "projection", "path": "documents/model.md"}
+  ],
+  "location_data": {"latitude": 42.012, "longitude": -71.446, "market_area_sq_miles": 13, "population": 68000, "competitors": [{"name": "Stone Slice", "distance_miles": 2.2}, {"name": "Flat Fire", "distance_miles": 5.4}]},
+  "finance_inputs": {"franchise_fee": 40000, "buildout": 90000, "equipment": 55000, "opening_inventory": 12000, "other_opening_costs": 18000, "monthly_revenue": 72000, "cogs_rate": 0.28, "royalty_rate": 0.08, "marketing_rate": 0.02, "technology_rate": 0.01, "technology_fixed": 150, "rent": 8500, "payroll": 25000, "utilities": 2500, "insurance": 900, "other_fixed": 3000}
+}

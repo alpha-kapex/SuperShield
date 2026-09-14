@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "id": "missing-blue-orbit",
+  "title": "Blue Orbit STEM Club",
+  "summary": "The concept provides revenue evidence but no proposed lease, rent schedule, escalation, or guarantee language.",
+  "category": "missing_evidence",
+  "flagship": false,
+  "input": {"buyer_name": "Grace", "maximum_investment": 175000, "emergency_reserve": 40000, "required_monthly_household_income": 5500, "preferred_location": "Westhaven", "risk_tolerance": "moderate", "currency": "USD", "cash_available": 225000},
+  "documents": [
+    {"document_id": "orbit-disclosure", "title": "Blue Orbit Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "orbit-site-note", "title": "Westhaven Broker Site Note", "kind": "site_note", "path": "documents/site-note.md"}
+  ],
+  "location_data": {"latitude": 39.124, "longitude": -84.496, "market_area_sq_miles": 12, "population": 61000, "competitors": [{"name": "Circuit Camp", "distance_miles": 5.2}]},
+  "finance_inputs": {"franchise_fee": 30000, "buildout": 70000, "equipment": 30000, "opening_inventory": 6000, "other_opening_costs": 9000, "monthly_revenue": 58000, "cogs_rate": 0.10, "royalty_rate": 0.06, "marketing_rate": 0.02, "technology_rate": 0.01, "technology_fixed": 450, "rent": null, "payroll": 21000, "utilities": 800, "insurance": 500, "other_fixed": 1800}
+}

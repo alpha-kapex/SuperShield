@@ -1,0 +1,45 @@
+flowchart TB
+  classDef human fill:#FFF4D6,stroke:#8A5A00,color:#2B1B00,stroke-width:2px
+  classDef edge fill:#E8F1FF,stroke:#1456A0,color:#082B54,stroke-width:2px
+  classDef agent fill:#E9F8EF,stroke:#157347,color:#073D25,stroke-width:2px
+  classDef tool fill:#F4ECFF,stroke:#6F42C1,color:#32156D,stroke-width:2px
+  classDef data fill:#F5F5F5,stroke:#4B5563,color:#111827,stroke-width:2px
+  classDef guard fill:#FFE8E8,stroke:#B42318,color:#5F0B05,stroke-width:2px
+
+  Priya["Priya<br/>constraints + explicit approvals"]:::human
+  UI["React curated-case demo<br/>no unrestricted uploads"]:::edge
+  API["FastAPI BFF · AWS App Runner<br/>limits · SSE · session binding"]:::edge
+  AC["Amazon Bedrock AgentCore Runtime<br/>trace + isolated execution"]:::agent
+  Supervisor["Strands SuperShield Supervisor<br/>plan · delegate · pause · selective rerun"]:::agent
+
+  subgraph BoundedTools["Bounded specialist graph"]
+    Evidence["Evidence Collector<br/>claims + page citations + hashes"]:::tool
+    Skeptic["Skeptic<br/>contradictions + disconfirming evidence"]:::tool
+    Finance["Deterministic Finance<br/>Decimal formulas + seeded scenarios"]:::tool
+    Location["Location Risk<br/>synthetic density + radius"]:::tool
+    Validator["Evidence Validator<br/>no evidence → unresolved"]:::guard
+    Approval["Human Approval Tool<br/>action + payload hash + expiry"]:::guard
+  end
+
+  Packet["Auditable Decision Packet<br/>review state · findings · calculations · provenance"]:::edge
+  DDB[("DynamoDB<br/>case/run state · TTL")]:::data
+  S3[("Encrypted S3<br/>temporary evidence · 1-day lifecycle")]:::data
+  CW[("CloudWatch + OTel/X-Ray<br/>events, metrics, traces; no CoT")]:::data
+
+  Priya --> UI --> API --> AC --> Supervisor
+  Supervisor --> Evidence
+  Supervisor --> Skeptic
+  Supervisor --> Finance
+  Supervisor --> Location
+  Evidence --> Validator
+  Skeptic --> Validator
+  Finance --> Validator
+  Location --> Validator
+  Validator -->|supported or unresolved| Supervisor
+  Supervisor -->|draft/export request| Approval
+  Approval -->|exact payload approved| Supervisor
+  Supervisor --> Packet --> API --> UI --> Priya
+  Supervisor <--> DDB
+  Evidence <--> S3
+  AC -. structured telemetry .-> CW
+  API -. structured telemetry .-> CW

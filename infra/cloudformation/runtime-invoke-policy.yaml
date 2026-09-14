@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bind the SuperShield App Runner instance role to exactly one AgentCore runtime
+
+Parameters:
+  Stage:
+    Type: String
+    Default: demo
+  AppRunnerInstanceRoleName:
+    Type: String
+  AgentCoreRuntimeArn:
+    Type: String
+    AllowedPattern: '^arn:[^:]+:bedrock-agentcore:[^:]+:[0-9]{12}:runtime/.+$'
+
+Resources:
+  InvokeRuntimePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub supershield-${Stage}-invoke-runtime
+      Roles:
+        - !Ref AppRunnerInstanceRoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InvokeOnlySuperShieldRuntime
+            Effect: Allow
+            Action: bedrock-agentcore:InvokeAgentRuntime
+            Resource: !Ref AgentCoreRuntimeArn

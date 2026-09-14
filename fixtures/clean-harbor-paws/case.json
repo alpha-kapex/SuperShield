@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "clean-harbor-paws",
+  "title": "Harbor Paws Grooming",
+  "summary": "A pet-grooming shop with reconciled average-unit economics and a bounded territory.",
+  "category": "clean",
+  "flagship": false,
+  "input": {"buyer_name": "Elena", "maximum_investment": 175000, "emergency_reserve": 35000, "required_monthly_household_income": 5500, "preferred_location": "Harbor Point", "risk_tolerance": "moderate", "currency": "USD", "cash_available": 230000},
+  "documents": [
+    {"document_id": "paws-brochure", "title": "Harbor Paws Candidate Guide", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "paws-disclosure", "title": "Harbor Paws Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "paws-territory", "title": "Harbor Point Territory Schedule", "kind": "territory", "path": "documents/territory.md"}
+  ],
+  "location_data": {"latitude": 39.588, "longitude": -74.032, "market_area_sq_miles": 14, "population": 71000, "competitors": [{"name": "Tidy Tail", "distance_miles": 3.7}, {"name": "Bark Basin", "distance_miles": 6.2}]},
+  "finance_inputs": {"franchise_fee": 28000, "buildout": 65000, "equipment": 45000, "opening_inventory": 6000, "other_opening_costs": 9000, "monthly_revenue": 68000, "cogs_rate": 0.18, "royalty_rate": 0.06, "marketing_rate": 0.015, "technology_rate": 0.005, "technology_fixed": 250, "rent": 7200, "payroll": 24500, "utilities": 1400, "insurance": 800, "other_fixed": 2500}
+}

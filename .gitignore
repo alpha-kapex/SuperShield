@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# JavaScript
+node_modules/
+web/dist/
+web/.vite/
+
+# Local configuration and generated artifacts
+.env
+!.env.example
+*.local
+evals/results/*.json
+evals/results/*.md
+!evals/results/.gitkeep
+.agentcore/
+.aws-sam/
+cdk.out/
+
+# Secrets, uploads, and temporary evidence
+*.pem
+*.key
+uploads/
+tmp/
+.DS_Store
+Thumbs.db

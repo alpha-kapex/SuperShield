@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "clean-little-lantern",
+  "title": "Little Lantern Learning Studio",
+  "summary": "A small tutoring studio with consistent enrollment, fee, and lease evidence.",
+  "category": "clean",
+  "flagship": false,
+  "input": {"buyer_name": "Jon", "maximum_investment": 110000, "emergency_reserve": 25000, "required_monthly_household_income": 4500, "preferred_location": "Lakeview", "risk_tolerance": "moderate", "currency": "USD", "cash_available": 145000},
+  "documents": [
+    {"document_id": "lantern-brochure", "title": "Little Lantern Overview", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "lantern-disclosure", "title": "Little Lantern Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "lantern-lease", "title": "Lakeview Studio Lease Summary", "kind": "lease", "path": "documents/lease.md"}
+  ],
+  "location_data": {"latitude": 40.822, "longitude": -73.202, "market_area_sq_miles": 11, "population": 52000, "competitors": [{"name": "Bright Desk", "distance_miles": 4.1}]},
+  "finance_inputs": {"franchise_fee": 30000, "buildout": 35000, "equipment": 12000, "opening_inventory": 2000, "other_opening_costs": 6000, "monthly_revenue": 42000, "cogs_rate": 0.08, "royalty_rate": 0.07, "marketing_rate": 0.02, "technology_rate": 0.00, "technology_fixed": 400, "rent": 3800, "payroll": 18500, "utilities": 500, "insurance": 350, "other_fixed": 1200}
+}

@@ -1,0 +1,29 @@
+# Copy to .bedrock_agentcore.yaml only through `agentcore configure`; do not commit generated IDs.
+# This file documents the intended deployment contract and contains no credentials.
+default_agent: supershield
+agents:
+  supershield:
+    name: supershield
+    entrypoint: src/supershield/integrations/agentcore.py
+    deployment_type: direct_code_deploy
+    platform: linux/arm64
+    region: us-east-1
+    execution_role: REPLACE_WITH_CORE_STACK_RuntimeExecutionRoleArn
+    requirements_file: pyproject.toml
+    network_mode: PUBLIC
+    protocol: HTTP
+    environment:
+      SUPERSHIELD_MODE: strands
+      SUPERSHIELD_STORAGE_BACKEND: dynamodb
+      SUPERSHIELD_BEDROCK_MODEL_ID: amazon.nova-pro-v1:0
+      SUPERSHIELD_BEDROCK_EXTRACTION_MODEL_ID: amazon.nova-lite-v1:0
+      SUPERSHIELD_DYNAMODB_TABLE: REPLACE_WITH_CORE_STACK_CasesTableName
+      SUPERSHIELD_S3_BUCKET: REPLACE_WITH_CORE_STACK_EvidenceBucketName  # pragma: allowlist secret
+      SUPERSHIELD_CASE_TTL_SECONDS: "86400"
+      SUPERSHIELD_MAX_DOCUMENTS: "20"
+      SUPERSHIELD_MAX_DOCUMENT_BYTES: "250000"
+    observability:
+      enabled: true
+      log_group: REPLACE_WITH_CORE_STACK_RuntimeLogGroupName  # pragma: allowlist secret
+      capture_input: false
+      capture_output: false

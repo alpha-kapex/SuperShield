@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://supershield.example/schemas/synthetic-case.json",
+  "title": "SuperShield synthetic evaluation case",
+  "type": "object",
+  "required": ["schema_version", "id", "title", "category", "input", "documents", "location_data", "finance_inputs"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "title": {"type": "string"},
+    "summary": {"type": "string"},
+    "category": {"enum": ["clean", "contradictory", "missing_evidence", "adversarial_injection"]},
+    "flagship": {"type": "boolean"},
+    "input": {
+      "type": "object",
+      "required": ["buyer_name", "maximum_investment", "emergency_reserve", "required_monthly_household_income", "preferred_location", "risk_tolerance", "currency"]
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["document_id", "title", "kind", "path"],
+        "properties": {"path": {"type": "string", "pattern": "^documents/"}}
+      }
+    },
+    "location_data": {"type": "object", "required": ["market_area_sq_miles", "population", "competitors"]},
+    "finance_inputs": {"type": "object"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "contradictory-swift-suds",
+  "title": "Swift Suds Laundrette",
+  "summary": "The advertised all-in opening cost omits mandatory utility and accessibility upgrades documented by the required contractor.",
+  "category": "contradictory",
+  "flagship": false,
+  "input": {"buyer_name": "Luis", "maximum_investment": 225000, "emergency_reserve": 60000, "required_monthly_household_income": 6000, "preferred_location": "East Borough", "risk_tolerance": "low", "currency": "USD", "cash_available": 300000},
+  "documents": [
+    {"document_id": "suds-brochure", "title": "Swift Suds Investment Card", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "suds-disclosure", "title": "Swift Suds Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "suds-contractor", "title": "Required Site Conversion Estimate", "kind": "contractor_estimate", "path": "documents/contractor.md"}
+  ],
+  "location_data": {"latitude": 39.961, "longitude": -75.112, "market_area_sq_miles": 10, "population": 63000, "competitors": [{"name": "Wash Arc", "distance_miles": 2.0}, {"name": "Spin Street", "distance_miles": 3.8}]},
+  "finance_inputs": {"franchise_fee": 35000, "buildout": 145000, "equipment": 62000, "opening_inventory": 5000, "other_opening_costs": 18000, "monthly_revenue": 75000, "cogs_rate": 0.12, "royalty_rate": 0.07, "marketing_rate": 0.02, "technology_rate": 0.01, "technology_fixed": 200, "rent": 10000, "payroll": 18000, "utilities": 7000, "insurance": 1000, "other_fixed": 3000}
+}

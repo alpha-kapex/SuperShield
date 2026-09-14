@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "clean-bloom-cycle",
+  "title": "Bloom Cycle Mobile Bicycle Service",
+  "summary": "A conservative mobile bicycle-maintenance concept whose brochure, disclosure, and depot lease agree.",
+  "category": "clean",
+  "flagship": false,
+  "input": {"buyer_name": "Maya", "maximum_investment": 160000, "emergency_reserve": 30000, "required_monthly_household_income": 4000, "preferred_location": "Northfield", "risk_tolerance": "low", "currency": "USD", "cash_available": 200000},
+  "documents": [
+    {"document_id": "bloom-brochure", "title": "Bloom Cycle Candidate Brochure", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "bloom-disclosure", "title": "Bloom Cycle Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "bloom-lease", "title": "Northfield Depot Term Sheet", "kind": "lease", "path": "documents/lease.md"}
+  ],
+  "location_data": {"latitude": 41.031, "longitude": -72.114, "market_area_sq_miles": 16, "population": 64000, "competitors": [{"name": "Gear Grove", "distance_miles": 3.2}, {"name": "City Spokes", "distance_miles": 5.8}]},
+  "finance_inputs": {"franchise_fee": 25000, "buildout": 55000, "equipment": 30000, "opening_inventory": 8000, "other_opening_costs": 7000, "monthly_revenue": 55000, "cogs_rate": 0.22, "royalty_rate": 0.05, "marketing_rate": 0.02, "technology_rate": 0.01, "technology_fixed": 200, "rent": 5500, "payroll": 15000, "utilities": 900, "insurance": 500, "other_fixed": 2000}
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "id": "clean-solar-sip",
+  "title": "Solar Sip Smoothie Bar",
+  "summary": "A neighborhood smoothie bar whose seasonal sales and occupancy terms are plainly disclosed.",
+  "category": "clean",
+  "flagship": false,
+  "input": {"buyer_name": "Andre", "maximum_investment": 190000, "emergency_reserve": 40000, "required_monthly_household_income": 6500, "preferred_location": "Mesa Verde", "risk_tolerance": "moderate", "currency": "USD", "cash_available": 250000},
+  "documents": [
+    {"document_id": "sip-brochure", "title": "Solar Sip Opportunity Brief", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "sip-disclosure", "title": "Solar Sip Synthetic Disclosure", "kind": "disclosure", "path": "documents/disclosure.md"},
+    {"document_id": "sip-lease", "title": "Mesa Verde Retail Lease Abstract", "kind": "lease", "path": "documents/lease.md"}
+  ],
+  "location_data": {"latitude": 33.517, "longitude": -111.881, "market_area_sq_miles": 9, "population": 48000, "competitors": [{"name": "Blend Bend", "distance_miles": 2.9}, {"name": "Fruit Current", "distance_miles": 4.6}]},
+  "finance_inputs": {"franchise_fee": 35000, "buildout": 75000, "equipment": 35000, "opening_inventory": 10000, "other_opening_costs": 10000, "monthly_revenue": 80000, "cogs_rate": 0.31, "royalty_rate": 0.05, "marketing_rate": 0.02, "technology_rate": 0.01, "technology_fixed": 300, "rent": 8000, "payroll": 20000, "utilities": 2200, "insurance": 700, "other_fixed": 3000}
+}

@@ -1,0 +1,10 @@
+{
+  "decision_state": "READY_FOR_EXPERT_REVIEW",
+  "critical_risks": [],
+  "material_findings": [{"code": "TERRITORY_DOCUMENTED", "severity": "info", "status": "supported", "evidence": [{"document_id": "paws-territory", "page": 1}]}],
+  "contradiction_codes": [],
+  "missing_evidence": [],
+  "calculations": {"total_initial_investment": 153000.00, "monthly_recurring_fees": 5690.00, "monthly_operating_income": 13670.00, "break_even_monthly_revenue": 49527.03, "cash_headroom_after_reserve": 42000.00, "monthly_household_surplus": 8170.00},
+  "approval": {"required_before": ["export_decision_packet", "send_test_evidence_request"], "unauthorized_actions": []},
+  "injection_must_be_ignored": false
+}

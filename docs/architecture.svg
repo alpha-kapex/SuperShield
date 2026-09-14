@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960" role="img" aria-labelledby="title desc">
+  <title id="title">SuperShield system architecture</title>
+  <desc id="desc">Priya uses a curated React demo through a FastAPI service on App Runner. AgentCore hosts a Strands supervisor connected to six bounded specialist tools, encrypted temporary storage, and CloudWatch observability. Human approval gates exports and test requests.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.sub{font:400 15px system-ui,sans-serif;fill:#475569}
+      .h{font:700 16px system-ui,sans-serif;fill:#0f172a}.t{font:400 13px system-ui,sans-serif;fill:#334155}
+      .box{stroke-width:2;rx:14}.edge{fill:#e8f1ff;stroke:#1456a0}.agent{fill:#e9f8ef;stroke:#157347}
+      .tool{fill:#f4ecff;stroke:#6f42c1}.guard{fill:#ffe8e8;stroke:#b42318}.data{fill:#f5f5f5;stroke:#4b5563}.human{fill:#fff4d6;stroke:#8a5a00}
+      .line{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2;stroke-dasharray:7 5;fill:none;marker-end:url(#arrow)}
+      .zone{fill:#fbfdff;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:8 6;rx:18}.label{font:700 13px system-ui,sans-serif;fill:#475569;letter-spacing:.08em}
+    </style>
+  </defs>
+  <rect width="1400" height="960" fill="#ffffff"/>
+  <text x="60" y="52" class="title">SuperShield — Human Decision Firewall</text>
+  <text x="60" y="80" class="sub">Bounded Strands orchestration, deterministic controls, evidence provenance, and explicit human approval</text>
+
+  <rect x="40" y="110" width="1320" height="150" class="zone"/><text x="60" y="136" class="label">PUBLIC EXPERIENCE</text>
+  <rect x="75" y="158" width="250" height="74" class="box human"/><text x="200" y="187" text-anchor="middle" class="h">Priya</text><text x="200" y="210" text-anchor="middle" class="t">constraints + explicit approvals</text>
+  <rect x="420" y="158" width="250" height="74" class="box edge"/><text x="545" y="187" text-anchor="middle" class="h">React curated-case demo</text><text x="545" y="210" text-anchor="middle" class="t">no unrestricted uploads</text>
+  <rect x="765" y="158" width="300" height="74" class="box edge"/><text x="915" y="187" text-anchor="middle" class="h">FastAPI · AWS App Runner</text><text x="915" y="210" text-anchor="middle" class="t">limits · SSE · session binding</text>
+  <rect x="1135" y="158" width="190" height="74" class="box data"/><text x="1230" y="187" text-anchor="middle" class="h">CloudWatch</text><text x="1230" y="210" text-anchor="middle" class="t">safe telemetry</text>
+  <path d="M325 195 H420" class="line"/><path d="M670 195 H765" class="line"/><path d="M1065 195 H1135" class="dash"/>
+
+  <rect x="40" y="290" width="1320" height="470" class="zone"/><text x="60" y="318" class="label">AGENTCORE RUNTIME · STRANDS</text>
+  <rect x="465" y="342" width="470" height="82" class="box agent"/><text x="700" y="372" text-anchor="middle" class="h">SuperShield Supervisor</text><text x="700" y="396" text-anchor="middle" class="t">plan · delegate · pause · selectively rerun · synthesize</text>
+  <path d="M915 232 V286 Q915 302 899 302 H716 Q700 302 700 318 V342" class="line"/>
+
+  <rect x="85" y="476" width="250" height="80" class="box tool"/><text x="210" y="506" text-anchor="middle" class="h">Evidence Collector</text><text x="210" y="529" text-anchor="middle" class="t">claims · pages · hashes</text>
+  <rect x="385" y="476" width="250" height="80" class="box tool"/><text x="510" y="506" text-anchor="middle" class="h">Skeptic</text><text x="510" y="529" text-anchor="middle" class="t">conflicts · missing support</text>
+  <rect x="685" y="476" width="250" height="80" class="box tool"/><text x="810" y="506" text-anchor="middle" class="h">Deterministic Finance</text><text x="810" y="529" text-anchor="middle" class="t">Decimal math · seeded cases</text>
+  <rect x="985" y="476" width="250" height="80" class="box tool"/><text x="1110" y="506" text-anchor="middle" class="h">Location Risk</text><text x="1110" y="529" text-anchor="middle" class="t">synthetic density · radius</text>
+
+  <path d="M700 424 V448 H210 V476" class="line"/><path d="M700 424 V448 H510 V476" class="line"/><path d="M700 424 V448 H810 V476" class="line"/><path d="M700 424 V448 H1110 V476" class="line"/>
+
+  <rect x="280" y="620" width="330" height="84" class="box guard"/><text x="445" y="651" text-anchor="middle" class="h">Evidence Validator</text><text x="445" y="674" text-anchor="middle" class="t">no evidence → unresolved</text>
+  <rect x="790" y="620" width="330" height="84" class="box guard"/><text x="955" y="651" text-anchor="middle" class="h">Human Approval Tool</text><text x="955" y="674" text-anchor="middle" class="t">action + payload hash + expiry</text>
+  <path d="M210 556 V582 H445 V620" class="line"/><path d="M510 556 V620" class="line"/><path d="M810 556 V582 H445 V620" class="line"/><path d="M1110 556 V582 H955 V620" class="line"/>
+  <path d="M445 620 V594 Q445 574 465 574 H665 Q685 574 685 554" class="line"/>
+  <path d="M955 620 V594 Q955 574 935 574" class="line"/>
+
+  <rect x="40" y="790" width="1320" height="130" class="zone"/><text x="60" y="817" class="label">EPHEMERAL DATA + AUDIT</text>
+  <rect x="85" y="840" width="270" height="58" class="box data"/><text x="220" y="865" text-anchor="middle" class="h">DynamoDB</text><text x="220" y="885" text-anchor="middle" class="t">case/run state · TTL</text>
+  <rect x="405" y="840" width="270" height="58" class="box data"/><text x="540" y="865" text-anchor="middle" class="h">Encrypted S3</text><text x="540" y="885" text-anchor="middle" class="t">temporary evidence · 1 day</text>
+  <rect x="725" y="840" width="270" height="58" class="box data"/><text x="860" y="865" text-anchor="middle" class="h">Decision Packet</text><text x="860" y="885" text-anchor="middle" class="t">findings · math · provenance</text>
+  <rect x="1045" y="840" width="270" height="58" class="box data"/><text x="1180" y="865" text-anchor="middle" class="h">OTel / X-Ray</text><text x="1180" y="885" text-anchor="middle" class="t">events · timing · no CoT</text>
+  <path d="M570 704 V738 Q570 756 550 756 H220 V840" class="line"/><path d="M445 704 V780 Q445 798 540 798 V840" class="line"/>
+  <path d="M955 704 V780 Q955 812 860 812 V840" class="line"/><path d="M1120 704 V780 Q1120 812 1180 812 V840" class="dash"/>
+</svg>

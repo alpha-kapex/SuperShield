@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "id": "missing-cedar-steps",
+  "title": "Cedar Steps Senior Fitness",
+  "summary": "A studio candidate receives startup costs but no Item 19 or other substantiated earnings evidence.",
+  "category": "missing_evidence",
+  "flagship": false,
+  "input": {"buyer_name": "Nora", "maximum_investment": 125000, "emergency_reserve": 30000, "required_monthly_household_income": 5000, "preferred_location": "Cedar Glen", "risk_tolerance": "low", "currency": "USD", "cash_available": 180000},
+  "documents": [
+    {"document_id": "cedar-brochure", "title": "Cedar Steps Candidate Overview", "kind": "brochure", "path": "documents/brochure.md"},
+    {"document_id": "cedar-disclosure", "title": "Cedar Steps Synthetic Disclosure Excerpt", "kind": "disclosure", "path": "documents/disclosure.md"}
+  ],
+  "location_data": {"latitude": 35.773, "longitude": -78.631, "market_area_sq_miles": 15, "population": 59000, "competitors": [{"name": "Silver Motion", "distance_miles": 4.0}]},
+  "finance_inputs": {"franchise_fee": 32000, "buildout": 45000, "equipment": 15000, "opening_inventory": 3000, "other_opening_costs": 5000, "monthly_revenue": null, "cogs_rate": 0.06, "royalty_rate": 0.06, "marketing_rate": 0.02, "technology_rate": 0.00, "technology_fixed": 300, "rent": 4500, "payroll": 16000, "utilities": 550, "insurance": 450, "other_fixed": 1500}
+}

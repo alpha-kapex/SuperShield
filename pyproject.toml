@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "supershield"
+version = "0.1.0"
+description = "An evidence-bound decision firewall for franchise investigations"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SuperShield contributors" }]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.9,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+aws = [
+  "boto3>=1.35,<2",
+  "strands-agents>=1.0,<2",
+  "bedrock-agentcore>=0.1,<2",
+  "bedrock-agentcore-starter-toolkit>=0.1,<2",
+  "ollama>=0.6,<1",
+]
+dev = [
+  "httpx>=0.27,<1",
+  "pytest>=8.3,<10",
+  "pytest-asyncio>=0.24,<2",
+  "ruff>=0.8,<1",
+]
+
+[project.scripts]
+supershield-api = "supershield.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/supershield"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
