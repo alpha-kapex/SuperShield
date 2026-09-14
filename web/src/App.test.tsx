@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App, { formatCurrency } from './App'
+import { createSessionId } from './session'
 
 const demoCase = {
   id: 'priya-franchise',
@@ -55,6 +56,17 @@ describe('SuperShield workspace', () => {
 
   it('formats the synthetic USD values for the decision owner', () => {
     expect(formatCurrency(3000000)).toBe('$3M')
+  })
+
+  it('creates a UUID session when randomUUID is unavailable on an HTTP origin', () => {
+    const cryptoSource = {
+      getRandomValues: (array: Uint8Array) => {
+        array.set(Array.from({ length: 16 }, (_, index) => index))
+        return array
+      },
+    }
+
+    expect(createSessionId(cryptoSource)).toBe('ss-00010203-0405-4607-8809-0a0b0c0d0e0f')
   })
 
   it('loads a demo case and opens the decision workspace', async () => {

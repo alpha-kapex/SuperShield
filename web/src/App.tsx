@@ -1,5 +1,6 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api, streamRunEvents } from './api'
+import { createSessionId } from './session'
 import type {
   ApprovalCheckpoint,
   CheckpointStatus,
@@ -107,7 +108,7 @@ function useSessionId() {
   const [sessionId] = useState(() => {
     const existing = window.sessionStorage.getItem('supershield-session')
     if (existing && existing.length >= 8) return existing
-    const created = `ss-${crypto.randomUUID()}`
+    const created = createSessionId()
     window.sessionStorage.setItem('supershield-session', created)
     return created
   })
