@@ -75,6 +75,7 @@ export function formatCurrency(value: number | null | undefined, compact = true)
     style: 'currency',
     currency: 'USD',
     notation: compact ? 'compact' : 'standard',
+    minimumFractionDigits: 0,
     maximumFractionDigits: compact ? 1 : 0,
   }).format(value)
 }
