@@ -298,6 +298,12 @@ def _financial_findings(
             )
         )
     if base.guarantee_exposure > 0:
+        guarantee_evidence = [
+            reference
+            for reference in assumptions.source_evidence
+            if reference.document_kind == DocumentKind.LEASE
+            and "guarant" in reference.excerpt.lower()
+        ]
         findings.append(
             RiskFinding(
                 category=FindingCategory.LEASE,
@@ -308,7 +314,7 @@ def _financial_findings(
                 ),
                 severity=Severity.HIGH if assumptions.personal_guarantee_months >= 36 else Severity.MEDIUM,
                 material=True,
-                evidence=assumptions.source_evidence,
+                evidence=guarantee_evidence or assumptions.source_evidence,
                 financial_impact=FinancialImpact(
                     amount=base.guarantee_exposure,
                     period="total_term",

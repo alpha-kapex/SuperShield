@@ -1,5 +1,7 @@
 # AWS deployment
 
+For the short-lived, Bedrock-free live demo, use the standalone [EC2 + Ollama deployment](EC2_OLLAMA_DEPLOYMENT.md). It runs `qwen3:8b-q4_K_M` on one ARM `t4g.large`, exposes HTTPS through CloudFront, and has a fixed post-results cost cutoff. The AgentCore/App Runner path below remains an optional future architecture.
+
 This deployment keeps the public surface small: App Runner exposes the FastAPI BFF, the BFF invokes the SuperShield supervisor in Amazon Bedrock AgentCore Runtime, and ephemeral state is encrypted in DynamoDB and S3. CloudWatch receives structured events and traces. The public demo loads only repository fixtures; it does not accept arbitrary uploads or external email recipients.
 
 ## What is provisioned

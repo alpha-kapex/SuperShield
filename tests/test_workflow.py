@@ -38,3 +38,17 @@ def test_flagship_financials_are_deterministic(client) -> None:
     assert base["cashAfterInvestment"] == 30000.0
     assert len(packet["missingEvidence"]) == 1
     assert "landlord's signed consent" in packet["missingEvidence"][0]
+
+    titles = {finding["title"] for finding in packet["riskFindings"]}
+    assert "Conflicting local population" not in titles
+
+    guarantee = next(
+        finding
+        for finding in packet["riskFindings"]
+        if finding["title"] == "Personal lease guarantee creates continuing exposure"
+    )
+    assert guarantee["evidence"]
+    assert {
+        (reference["documentId"], reference["page"])
+        for reference in guarantee["evidence"]
+    } == {("saffron-lease", 2)}

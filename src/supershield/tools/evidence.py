@@ -330,7 +330,24 @@ def _normalized_value(topic: str, text: str) -> Decimal | str | bool | None:
             r"stay\s+open|remain(?:ed)?\s+open|survival\s+rate",
         )
         return value / Decimal("100") if value is not None else None
-    if topic in {"competitor_count", "same_brand_units", "population", "break_even"}:
+    if topic == "population":
+        # Do not let a bare mention such as "no measured population" borrow
+        # an unrelated number, such as annual sales, from the same sentence.
+        if re.search(
+            r"\b(?:no|without|unknown|undisclosed|unreported)\b.{0,30}"
+            r"\b(?:measured\s+)?population\b",
+            lower,
+        ):
+            return None
+        population_patterns = (
+            r"\bpopulation\s*(?:is|of|equals|:|=)?\s*(\d[\d,]*(?:\.\d+)?)\b",
+            r"\b(\d[\d,]*(?:\.\d+)?)\s+(?:people|persons|residents?|population)\b",
+        )
+        for pattern in population_patterns:
+            if match := re.search(pattern, text, re.I):
+                return _decimal(match.group(1))
+        return None
+    if topic in {"competitor_count", "same_brand_units", "break_even"}:
         match = re.search(r"\b(\d[\d,]*(?:\.\d+)?)\b", text)
         return _decimal(match.group(1)) if match else text[:240]
     money_labels = {

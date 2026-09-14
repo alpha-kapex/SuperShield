@@ -1,0 +1,545 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Standalone SuperShield live demo on one EC2 instance with Strands and Ollama,
+  CloudFront HTTPS, no SSH, and an automatic post-results cost teardown.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: devpost-2026
+    AllowedPattern: '^[a-z0-9-]{1,20}$'
+  InstanceType:
+    Type: String
+    Default: t4g.large
+    AllowedValues:
+      - t4g.large
+    Description: Two-vCPU, 8-GiB Graviton instance using standard CPU credits for predictable spend.
+  RootVolumeGiB:
+    Type: Number
+    Default: 40
+    MinValue: 40
+    MaxValue: 40
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+  RepositoryUrl:
+    Type: String
+    Default: https://github.com/alpha-kapex/SuperShield.git
+    AllowedPattern: '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git$'
+  GitRef:
+    Type: String
+    Default: main
+    AllowedPattern: '^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$'
+    Description: Deploy an immutable full commit SHA whenever possible.
+  OllamaModel:
+    Type: String
+    Default: qwen3:8b-q4_K_M
+    AllowedPattern: '^[A-Za-z0-9._:/-]{1,128}$'
+  OllamaImage:
+    Type: String
+    Default: ollama/ollama:0.34.0
+    AllowedPattern: '^[A-Za-z0-9._/-]+:[A-Za-z0-9._-]+$'
+  NginxImage:
+    Type: String
+    Default: nginx:1.28-alpine
+    AllowedPattern: '^[A-Za-z0-9._/-]+:[A-Za-z0-9._-]+$'
+  CloudFrontOriginPrefixListId:
+    Type: String
+    AllowedPattern: '^pl-[a-f0-9]+$'
+    Description: Region-specific ID for com.amazonaws.global.cloudfront.origin-facing.
+  OriginVerifySecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    MaxLength: 128
+    AllowedPattern: '^[A-Za-z0-9_-]+$'
+    Description: Random value added by CloudFront and required by the private origin proxy.
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.42.0.0/24
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}'}
+        - {Key: Project, Value: SuperShield}
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}'}
+        - {Key: Project, Value: SuperShield}
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.42.0.0/26
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}-public'}
+        - {Key: Project, Value: SuperShield}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}-public'}
+        - {Key: Project, Value: SuperShield}
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  OriginSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: CloudFront-only ingress to the SuperShield origin; no SSH.
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - Description: HTTPS edge to HTTP origin proxy
+          IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourcePrefixListId: !Ref CloudFrontOriginPrefixListId
+      SecurityGroupEgress:
+        - Description: Bootstrap packages, container images, model, SSM, and updates
+          IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}-origin'}
+        - {Key: Project, Value: SuperShield}
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'
+      Tags:
+        - {Key: Project, Value: SuperShield}
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  DemoInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: PublicRoute
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      CreditSpecification:
+        CPUCredits: standard
+      IamInstanceProfile: !Ref InstanceProfile
+      DisableApiTermination: false
+      InstanceInitiatedShutdownBehavior: stop
+      Monitoring: false
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+        InstanceMetadataTags: disabled
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          DeviceIndex: '0'
+          GroupSet: [!Ref OriginSecurityGroup]
+          SubnetId: !Ref PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            Iops: 3000
+            VolumeSize: !Ref RootVolumeGiB
+            VolumeType: gp3
+      Tags:
+        - {Key: Name, Value: !Sub 'supershield-${Stage}-ollama'}
+        - {Key: Project, Value: SuperShield}
+        - {Key: DataClass, Value: curated-synthetic-demo}
+        - {Key: AutoTerminateAt, Value: '2026-10-16T06:00:00Z'}
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -Eeuo pipefail
+          umask 077
+          exec > >(tee -a /var/log/supershield-bootstrap.log | logger -t supershield-bootstrap -s 2>/dev/console) 2>&1
+          trap 'echo "SuperShield bootstrap failed at line $LINENO"' ERR
+
+          REPOSITORY_URL='${RepositoryUrl}'
+          GIT_REF='${GitRef}'
+          MODEL_ID='${OllamaModel}'
+          OLLAMA_IMAGE='${OllamaImage}'
+          NGINX_IMAGE='${NginxImage}'
+          ORIGIN_SECRET='${OriginVerifySecret}'
+
+          dnf upgrade -y
+          dnf install -y docker git openssl
+          fallocate -l 4G /swapfile
+          chmod 0600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile none swap sw 0 0' >> /etc/fstab
+          systemctl enable --now docker
+
+          install -d -m 0700 /etc/supershield
+          install -d -m 0755 /opt/supershield
+          git clone --filter=blob:none "$REPOSITORY_URL" /opt/supershield/source
+          git -C /opt/supershield/source fetch --depth 1 origin "$GIT_REF"
+          git -C /opt/supershield/source checkout --detach FETCH_HEAD
+
+          docker network create supershield
+          docker volume create supershield-ollama
+          docker pull "$OLLAMA_IMAGE"
+          docker pull "$NGINX_IMAGE"
+          docker build --pull --file /opt/supershield/source/infra/ec2/Dockerfile \
+            --tag supershield-ollama-demo:local /opt/supershield/source
+
+          docker run --detach --name ollama --restart unless-stopped \
+            --network supershield \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --memory 6g --cpus 2 \
+            --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
+            --volume supershield-ollama:/root/.ollama \
+            --env OLLAMA_HOST=0.0.0.0:11434 \
+            --env OLLAMA_NUM_PARALLEL=1 \
+            --env OLLAMA_MAX_LOADED_MODELS=1 \
+            --env OLLAMA_MAX_QUEUE=4 \
+            --env OLLAMA_KEEP_ALIVE=24h \
+            --env OLLAMA_CONTEXT_LENGTH=4096 \
+            --env OLLAMA_FLASH_ATTENTION=1 \
+            --env OLLAMA_KV_CACHE_TYPE=q8_0 \
+            "$OLLAMA_IMAGE"
+
+          for attempt in $(seq 1 60); do
+            if docker exec ollama ollama list >/dev/null 2>&1; then
+              break
+            fi
+            sleep 5
+          done
+          docker exec ollama ollama list >/dev/null
+          docker exec ollama ollama pull "$MODEL_ID"
+          docker exec ollama ollama run "$MODEL_ID" "/no_think Reply with READY only."
+
+          APPROVAL_SECRET=$(openssl rand -hex 48)
+          docker run --detach --name supershield --restart unless-stopped \
+            --network supershield \
+            --read-only --tmpfs /tmp:size=64m,mode=1777 \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --memory 768m --cpus 1 \
+            --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
+            --env SUPERSHIELD_ENVIRONMENT=demo \
+            --env SUPERSHIELD_MODE=strands \
+            --env SUPERSHIELD_STRANDS_PROVIDER=ollama \
+            --env SUPERSHIELD_OLLAMA_MODEL="$MODEL_ID" \
+            --env SUPERSHIELD_OLLAMA_HOST=http://ollama:11434 \
+            --env SUPERSHIELD_STORAGE_BACKEND=memory \
+            --env SUPERSHIELD_PUBLIC_DEMO=true \
+            --env SUPERSHIELD_ALLOW_INLINE_DOCUMENTS=false \
+            --env SUPERSHIELD_APPROVAL_SECRET="$APPROVAL_SECRET" \
+            --env SUPERSHIELD_APPROVAL_TTL_SECONDS=600 \
+            --env SUPERSHIELD_CASE_TTL_SECONDS=86400 \
+            --env SUPERSHIELD_CORS_ORIGINS=https://same-origin.invalid \
+            --env SUPERSHIELD_MAX_DOCUMENTS=12 \
+            --env SUPERSHIELD_MAX_DOCUMENT_BYTES=250000 \
+            supershield-ollama-demo:local
+
+          cat >/etc/supershield/proxy.conf <<'PROXY'
+          proxy_pass http://supershield:8000;
+          proxy_http_version 1.1;
+          proxy_set_header Connection "";
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $supershield_client_ip;
+          proxy_set_header X-Forwarded-For $supershield_client_ip;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_buffering off;
+          proxy_cache off;
+          proxy_read_timeout 900s;
+          proxy_send_timeout 60s;
+          PROXY
+
+          cat >/etc/supershield/nginx.conf <<'NGINX'
+          user nginx;
+          worker_processes auto;
+          pid /var/run/nginx.pid;
+          error_log /dev/stderr warn;
+
+          events {
+            worker_connections 1024;
+          }
+
+          http {
+            include /etc/nginx/mime.types;
+            default_type application/octet-stream;
+            access_log /dev/stdout;
+            server_tokens off;
+
+            map $http_cloudfront_viewer_address $supershield_client_ip {
+              "~^(?<cf_ipv4>[0-9.]+):[0-9]+$" $cf_ipv4;
+              "~^\[(?<cf_ipv6>[0-9A-Fa-f:]+)\]:[0-9]+$" $cf_ipv6;
+              default $remote_addr;
+            }
+
+            limit_req_zone $supershield_client_ip zone=model_runs:10m rate=6r/m;
+            limit_conn_zone $supershield_client_ip zone=per_client:10m;
+
+            server {
+              listen 8080;
+              client_max_body_size 300k;
+
+              if ($http_x_supershield_origin != "__ORIGIN_VERIFY_SECRET__") { return 403; }
+
+              add_header X-Content-Type-Options nosniff always;
+              add_header X-Frame-Options DENY always;
+              add_header Referrer-Policy no-referrer always;
+              add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+              add_header Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" always;
+
+              location ~ ^/cases/[^/]+/runs$ {
+                limit_req zone=model_runs burst=1 nodelay;
+                limit_conn per_client 2;
+                include /etc/nginx/supershield-proxy.conf;
+              }
+
+              location / {
+                limit_conn per_client 20;
+                include /etc/nginx/supershield-proxy.conf;
+              }
+            }
+          }
+          NGINX
+          sed -i "s|__ORIGIN_VERIFY_SECRET__|$ORIGIN_SECRET|g" /etc/supershield/nginx.conf
+          chmod 0600 /etc/supershield/nginx.conf /etc/supershield/proxy.conf
+
+          docker run --detach --name supershield-gateway --restart unless-stopped \
+            --network supershield \
+            --publish 8080:8080 \
+            --read-only \
+            --tmpfs /var/cache/nginx:size=32m \
+            --tmpfs /var/run:size=4m \
+            --tmpfs /tmp:size=16m \
+            --security-opt no-new-privileges:true \
+            --memory 128m --cpus 0.25 \
+            --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add SETGID --cap-add SETUID \
+            --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
+            --volume /etc/supershield/nginx.conf:/etc/nginx/nginx.conf:ro \
+            --volume /etc/supershield/proxy.conf:/etc/nginx/supershield-proxy.conf:ro \
+            "$NGINX_IMAGE"
+
+          docker exec supershield-gateway nginx -t
+          touch /var/lib/cloud/instance/supershield-ready
+
+  DisabledCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-disabled-cache'
+        Comment: Dynamic API and SSE responses must not be cached.
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig: {CookieBehavior: none}
+          EnableAcceptEncodingBrotli: false
+          EnableAcceptEncodingGzip: false
+          HeadersConfig: {HeaderBehavior: none}
+          QueryStringsConfig: {QueryStringBehavior: none}
+
+  ForwardViewerPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub '${AWS::StackName}-forward-viewer'
+        Comment: Forward API inputs and the CloudFront viewer address for bounded rate limiting.
+        CookiesConfig: {CookieBehavior: all}
+        HeadersConfig:
+          HeaderBehavior: allViewerAndWhitelistCloudFront
+          Headers:
+            - CloudFront-Viewer-Address
+        QueryStringsConfig: {QueryStringBehavior: all}
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub 'SuperShield ${Stage} HTTPS demo'
+        DefaultCacheBehavior:
+          AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+          CachePolicyId: !Ref DisabledCachePolicy
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: false
+          OriginRequestPolicyId: !Ref ForwardViewerPolicy
+          TargetOriginId: supershield-ec2
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - Id: supershield-ec2
+            DomainName: !GetAtt DemoInstance.PublicDnsName
+            ConnectionAttempts: 3
+            ConnectionTimeout: 10
+            CustomOriginConfig:
+              HTTPPort: 8080
+              OriginKeepaliveTimeout: 5
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+              OriginSSLProtocols: [TLSv1.2]
+            OriginCustomHeaders:
+              - HeaderName: X-SuperShield-Origin
+                HeaderValue: !Ref OriginVerifySecret
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+      Tags:
+        - {Key: Project, Value: SuperShield}
+        - {Key: Exposure, Value: curated-public-demo}
+
+  TerminationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/supershield-${Stage}-expiry'
+      RetentionInDays: 7
+
+  TerminationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteGuardrailLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${TerminationLogGroup.Arn}:*'
+      Tags:
+        - {Key: Project, Value: SuperShield}
+
+  TerminationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub 'supershield-${Stage}-results-cutoff'
+      Roles: [!Ref TerminationRole]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: ec2:TerminateInstances
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DemoInstance}'
+          - Effect: Allow
+            Action:
+              - cloudfront:GetDistributionConfig
+              - cloudfront:UpdateDistribution
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+
+  TerminationFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: TerminationPolicy
+    Properties:
+      FunctionName: !Sub 'supershield-${Stage}-expiry'
+      Description: Terminates compute and disables the public edge after the results cutoff.
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt TerminationRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          INSTANCE_ID: !Ref DemoInstance
+          DISTRIBUTION_ID: !Ref Distribution
+      Code:
+        ZipFile: |
+          import os
+          import boto3
+
+          def handler(event, context):
+              instance_id = os.environ["INSTANCE_ID"]
+              response = boto3.client("ec2").terminate_instances(InstanceIds=[instance_id])
+              distribution_id = os.environ["DISTRIBUTION_ID"]
+              cloudfront = boto3.client("cloudfront")
+              current = cloudfront.get_distribution_config(Id=distribution_id)
+              config = current["DistributionConfig"]
+              config["Enabled"] = False
+              cloudfront.update_distribution(
+                  Id=distribution_id,
+                  IfMatch=current["ETag"],
+                  DistributionConfig=config,
+              )
+              return {
+                  "instanceId": instance_id,
+                  "state": response["TerminatingInstances"][0]["CurrentState"]["Name"],
+                  "distributionDisabled": True,
+              }
+      Tags:
+        - {Key: Project, Value: SuperShield}
+
+  ResultsCutoffRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Hard cost guardrail after the 2026-10-14 results window (2026-10-16 06:00 UTC).
+      ScheduleExpression: cron(0 6 16 10 ? 2026)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt TerminationFunction.Arn
+          Id: terminate-supershield-instance
+
+  AllowEventBridgeInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref TerminationFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ResultsCutoffRule.Arn
+
+Outputs:
+  PublicUrl:
+    Description: HTTPS URL using the CloudFront default certificate.
+    Value: !Sub 'https://${Distribution.DomainName}'
+  InstanceId:
+    Value: !Ref DemoInstance
+  Model:
+    Value: !Ref OllamaModel
+  AutomaticCostTeardownUtc:
+    Value: '2026-10-16T06:00:00Z'
+  CostGuardrail:
+    Value: At the cutoff the EC2 instance and encrypted root volume are terminated and CloudFront is disabled; run teardown to remove the remaining no-idle-cost stack resources.
+  SessionManagerCommand:
+    Value: !Sub 'aws ssm start-session --region ${AWS::Region} --target ${DemoInstance}'
