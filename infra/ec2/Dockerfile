@@ -23,8 +23,8 @@ RUN groupadd --system --gid 10001 supershield \
  && useradd --system --uid 10001 --gid supershield --no-create-home supershield
 WORKDIR /app
 COPY --from=python-builder /install /usr/local
-COPY fixtures ./fixtures
-COPY --from=web-builder /web/dist ./web/dist
+COPY --chown=10001:10001 fixtures ./fixtures
+COPY --chown=10001:10001 --from=web-builder /web/dist ./web/dist
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \

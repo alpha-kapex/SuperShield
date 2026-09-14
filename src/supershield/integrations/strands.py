@@ -7,7 +7,7 @@ import json
 from typing import Any
 
 from supershield.models import CaseRecord, InvestigationPlan
-from supershield.tools.evidence import as_safe_tool_payload, collect_evidence
+from supershield.tools.evidence import collect_evidence
 from supershield.tools.finance import calculate_financial_scenarios
 from supershield.tools.location import assess_location
 from supershield.tools.skepticism import assess_claims
@@ -51,6 +51,9 @@ class StrandsSupervisorAdapter:
             return "not installed; deterministic local workflow available"
         if self.last_error:
             return self.last_error
+        if self.invocations:
+            suffix = "invocation" if self.invocations == 1 else "invocations"
+            return f"installed; {self.provider} {suffix} succeeded: {self.invocations}"
         return f"installed; {self.provider} invocation not yet exercised"
 
     def orchestrate(
@@ -67,7 +70,13 @@ class StrandsSupervisorAdapter:
         def evidence_collector() -> dict[str, Any]:
             """Extract bounded claims and citations from the curated case documents."""
 
-            return as_safe_tool_payload(evidence)
+            return {
+                "status": "completed",
+                "claimCount": len(evidence.claims),
+                "citationCount": len(evidence.references),
+                "securityFindingCount": len(evidence.security_findings),
+                "topics": sorted({claim.topic for claim in evidence.claims})[:20],
+            }
 
         @tool
         def skeptic() -> dict[str, Any]:
@@ -75,15 +84,10 @@ class StrandsSupervisorAdapter:
 
             result = assess_claims(evidence.claims)
             return {
-                "assessments": [
-                    item.model_dump(mode="json", by_alias=True)
-                    for item in result.assessments
-                ],
-                "findings": [
-                    item.model_dump(mode="json", by_alias=True)
-                    for item in result.findings
-                ],
-                "missingEvidence": result.missing_evidence,
+                "status": "completed",
+                "assessmentCount": len(result.assessments),
+                "findingCount": len(result.findings),
+                "missingEvidenceCount": len(result.missing_evidence),
             }
 
         @tool
@@ -92,15 +96,10 @@ class StrandsSupervisorAdapter:
 
             result = calculate_financial_scenarios(case.input, evidence.claims)
             return {
-                "scenarios": [
-                    item.model_dump(mode="json", by_alias=True)
-                    for item in result.scenarios
-                ],
-                "findings": [
-                    item.model_dump(mode="json", by_alias=True)
-                    for item in result.findings
-                ],
-                "missingEvidence": result.missing_evidence,
+                "status": "completed",
+                "scenarioCount": len(result.scenarios),
+                "findingCount": len(result.findings),
+                "missingEvidenceCount": len(result.missing_evidence),
             }
 
         @tool
@@ -109,16 +108,10 @@ class StrandsSupervisorAdapter:
 
             result = assess_location(case.input, case.location_data, evidence.claims)
             return {
-                "assessment": (
-                    result.assessment.model_dump(mode="json", by_alias=True)
-                    if result.assessment
-                    else None
-                ),
-                "findings": [
-                    item.model_dump(mode="json", by_alias=True)
-                    for item in result.findings
-                ],
-                "missingEvidence": result.missing_evidence,
+                "status": "completed",
+                "assessed": result.assessment is not None,
+                "findingCount": len(result.findings),
+                "missingEvidenceCount": len(result.missing_evidence),
             }
 
         if self.provider == "ollama":
@@ -128,7 +121,7 @@ class StrandsSupervisorAdapter:
                 host=self.ollama_host,
                 model_id=self.ollama_model,
                 temperature=0,
-                max_tokens=512,
+                max_tokens=256,
                 additional_args={"think": False},
             )
             provider_name = "strands-ollama"
