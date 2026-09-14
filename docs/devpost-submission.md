@@ -66,7 +66,7 @@ Evidence is untrusted input. Two benchmark documents explicitly try to change po
 
 The versioned suite contains exactly twelve fictional cases: four clean, four contradictory, two missing-evidence, and two adversarial-injection cases. It compares SuperShield with a single-pass summarization baseline and measures critical-risk recall, exact citation correctness, unsupported claims, deterministic calculation accuracy, correct abstention/escalation, approval enforcement, unauthorized actions, injection resistance, tool success, latency, and estimated Bedrock cost.
 
-**Measured locally on 2026-09-14 through the real FastAPI workflow (`[VERIFY: public commit SHA]`):**
+**Measured locally on 2026-09-14 through the real FastAPI workflow (`9dcbca6974b4e7d404fddd652e3f2373e87ba571`):**
 
 - Critical-risk recall: `100%`
 - Citation correctness: `100%`

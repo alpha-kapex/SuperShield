@@ -14,7 +14,7 @@ Owners should attach a name, date, evidence URL, and reviewer to every checked r
 - [ ] Run dependency license and vulnerability scans; resolve or document every finding.
 - [x] Apache-2.0 `LICENSE` included.
 - [x] Public repository is visible without authentication under personal user account `alpha-kapex`: <https://github.com/alpha-kapex/SuperShield>.
-- [ ] Repository description, topics, and license metadata match the submission.
+- [x] Repository description and topics match the submission; Apache-2.0 license metadata is provided by `LICENSE`.
 - [ ] Team members and prior/work-for-hire ownership are disclosed as required by the official rules.
 
 ## Required technology and working proof
@@ -92,7 +92,7 @@ Owners should attach a name, date, evidence URL, and reviewer to every checked r
 
 - [x] Devpost title, tagline, problem, implementation, challenges, accomplishments, lessons, and next steps completed in `docs/devpost-submission.md`.
 - [x] Public personal-account GitHub URL: <https://github.com/alpha-kapex/SuperShield>
-- [ ] Commit SHA used by video/demo/evaluation: `[VERIFY]`
+- [x] Benchmarked implementation commit: `9dcbca6974b4e7d404fddd652e3f2373e87ba571`
 - [ ] Live demo URL: `[VERIFY]`
 - [ ] Video URL and duration: `[VERIFY]`
 - [ ] Architecture SVG renders from the public repository.
