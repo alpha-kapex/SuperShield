@@ -75,18 +75,6 @@ if (-not $GitRef) {
     }
 }
 
-$prefixListId = (& aws ec2 describe-managed-prefix-lists `
-    --region $Region `
-    --filters Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing `
-    --query 'PrefixLists[0].PrefixListId' `
-    --output text).Trim()
-if ($LASTEXITCODE -ne 0 -or $prefixListId -notmatch '^pl-[a-f0-9]+$') {
-    throw 'Could not resolve the CloudFront origin-facing managed prefix list.'
-}
-
-$secretBytes = [byte[]]::new(48)
-[Security.Cryptography.RandomNumberGenerator]::Fill($secretBytes)
-$originSecret = [Convert]::ToBase64String($secretBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
 $template = Join-Path $PSScriptRoot 'cloudformation/ec2-ollama.yaml'
 
 & aws cloudformation validate-template --region $Region --template-body "file://$template" | Out-Null
@@ -97,9 +85,7 @@ $parameters = @(
     'InstanceType=t4g.large',
     'RootVolumeGiB=40',
     "GitRef=$GitRef",
-    'OllamaModel=qwen3:8b-q4_K_M',
-    "CloudFrontOriginPrefixListId=$prefixListId",
-    "OriginVerifySecret=$originSecret"
+    'OllamaModel=qwen3:8b-q4_K_M'
 )
 & aws cloudformation deploy `
     --region $Region `
@@ -115,8 +101,8 @@ $url = (& aws cloudformation describe-stacks `
     --stack-name $stackName `
     --query "Stacks[0].Outputs[?OutputKey=='PublicUrl'].OutputValue | [0]" `
     --output text).Trim()
-if ($LASTEXITCODE -ne 0 -or $url -notmatch '^https://') {
-    throw 'Deployment completed but no HTTPS output URL was returned.'
+if ($LASTEXITCODE -ne 0 -or $url -notmatch '^http://') {
+    throw 'Deployment completed but no HTTP output URL was returned.'
 }
 
 Write-Host "CloudFormation is ready; the ARM instance is still building the app and pulling Qwen."
@@ -143,4 +129,4 @@ if (-not $healthy) {
 }
 
 Write-Host "SuperShield is live at $url"
-Write-Host "Automatic cost teardown: 2026-10-16 06:00 UTC (EC2/root EBS terminated; CloudFront disabled)."
+Write-Host "Automatic cost teardown: 2026-10-16 06:00 UTC (EC2/root EBS terminated)."

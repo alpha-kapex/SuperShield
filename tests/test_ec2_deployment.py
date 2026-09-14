@@ -34,30 +34,28 @@ def test_ec2_demo_has_no_open_admin_path_or_costly_network_middlebox() -> None:
     assert "AWS::EC2::NatGateway" not in TEMPLATE
     assert "AWS::EC2::EIP" not in TEMPLATE
     assert "AWS::ElasticLoadBalancingV2" not in TEMPLATE
-    assert "SourcePrefixListId: !Ref CloudFrontOriginPrefixListId" in TEMPLATE
+    assert "FromPort: 80" in TEMPLATE
+    assert "CidrIp: 0.0.0.0/0" in TEMPLATE
     assert "HttpTokens: required" in TEMPLATE
     assert "HttpPutResponseHopLimit: 1" in TEMPLATE
     assert "AmazonSSMManagedInstanceCore" in TEMPLATE
 
 
-def test_public_origin_is_https_only_and_curated() -> None:
-    assert "ViewerProtocolPolicy: redirect-to-https" in TEMPLATE
-    assert "CloudFrontDefaultCertificate: true" in TEMPLATE
-    assert "X-SuperShield-Origin" in TEMPLATE
-    assert "__ORIGIN_VERIFY_SECRET__" in TEMPLATE
+def test_public_origin_is_rate_limited_and_curated() -> None:
+    assert "AWS::CloudFront" not in TEMPLATE
+    assert "limit_req_zone $binary_remote_addr" in TEMPLATE
     assert "SUPERSHIELD_STORAGE_BACKEND=memory" in TEMPLATE
     assert "SUPERSHIELD_PUBLIC_DEMO=true" in TEMPLATE
     assert "SUPERSHIELD_ALLOW_INLINE_DOCUMENTS=false" in TEMPLATE
-    assert "--publish 8080:8080" in TEMPLATE
+    assert "--publish 80:8080" in TEMPLATE
     assert "--publish 8000:8000" not in TEMPLATE
 
 
-def test_results_cutoff_terminates_compute_and_disables_edge() -> None:
+def test_results_cutoff_terminates_compute() -> None:
     assert "cron(0 6 16 10 ? 2026)" in TEMPLATE
     assert "2026-10-16T06:00:00Z" in TEMPLATE
     assert "ec2:TerminateInstances" in TEMPLATE
-    assert "cloudfront:UpdateDistribution" in TEMPLATE
-    assert 'config["Enabled"] = False' in TEMPLATE
+    assert "cloudfront:" not in TEMPLATE.lower()
     assert "rate(5 days)" not in TEMPLATE
 
 

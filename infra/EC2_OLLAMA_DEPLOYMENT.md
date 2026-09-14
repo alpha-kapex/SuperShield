@@ -1,6 +1,6 @@
 # Standalone EC2 + Ollama live demo
 
-This is the Bedrock-free deployment path for the public SuperShield demo. It runs the real Strands supervisor against Ollama on one ARM instance and serves the React application and FastAPI API from the same HTTPS origin.
+This is the Bedrock-free deployment path for the public SuperShield demo. It runs the real Strands supervisor against Ollama on one ARM instance and serves the React application and FastAPI API from the same direct HTTP origin.
 
 > Status: deployment artifacts only. Nothing in this guide has been deployed. Before running the script, independently confirm that the target account and principal are personal and are not associated with Kariant Development.
 
@@ -13,11 +13,11 @@ This is the Bedrock-free deployment path for the public SuperShield demo. It run
 | Model | `qwen3:8b-q4_K_M` | Stronger than the tiny local smoke-test model. Its registry layers were verified at about 4.87 GiB, fitting the 8 GiB host with a 4 GiB swap safety net and one-model/one-request limits. |
 | Disk | 40 GiB encrypted gp3, 3,000 IOPS, 125 MiB/s | Holds the OS, build layers, model, logs, and swap. It is deleted with the instance. |
 | State | One instance, in-memory store | Avoids DynamoDB/S3 and cross-instance consistency problems. Restarting the app clears cases and approvals. |
-| HTTPS | CloudFront default certificate | Gives a public HTTPS URL without buying a domain or operating a certificate. The origin allows port 8080 only from the AWS-managed CloudFront origin prefix list and requires a random private header. |
+| Public URL | EC2 public DNS over HTTP | Avoids the account-blocked CloudFront dependency. The rate-limited gateway is the only public application port; do not submit sensitive or real customer data. |
 | Admin | AWS Systems Manager Session Manager | There is no key pair, SSH listener, port 22 rule, NAT gateway, load balancer, or Elastic IP. |
 | Cutoff | **2026-10-16 06:00 UTC** | This is 11:30 IST on Oct 16 and 23:00 PDT on Oct 15, leaving a buffer after the Oct 14 results date. |
 
-At the cutoff, EventBridge invokes a narrowly scoped Lambda that terminates the EC2 instance (deleting its root EBS volume and releasing its public IPv4 address) and disables CloudFront. The VPC, disabled distribution, IAM roles, event rule, Lambda, and short-retention log group remain until the teardown script removes the stack, but they have no expected fixed hourly compute cost.
+At the cutoff, EventBridge invokes a narrowly scoped Lambda that terminates the EC2 instance (deleting its root EBS volume and releasing its public IPv4 address). The VPC, IAM roles, event rule, Lambda, and short-retention log group remain until the teardown script removes the stack, but they have no expected fixed hourly compute cost.
 
 ## Cost envelope
 
@@ -26,7 +26,7 @@ The deploy script refuses to run if its conservative plan exceeds $75. Its plann
 - t4g.large on demand: $0.0672/hour;
 - public IPv4: $0.005/hour;
 - 40 GiB gp3: $0.08/GiB-month, prorated;
-- $5 buffer for CloudFront requests/data, Lambda, logs, and rounding.
+- $5 buffer for data transfer, Lambda, logs, and rounding.
 
 A deployment around September 14 through the fixed cutoff is approximately **$64–65** under those assumptions. This is not an AWS quote, taxes and unusual data transfer are not included, and promotional credits may have service-specific eligibility. The nginx gateway limits model-start requests to reduce abuse. Delete early after judging whenever possible.
 
@@ -35,9 +35,8 @@ A deployment around September 14 through the fixed cutoff is approximately **$64
 - `SUPERSHIELD_PUBLIC_DEMO=true` and `SUPERSHIELD_ALLOW_INLINE_DOCUMENTS=false` restrict the API to repository fixtures.
 - The app uses the memory store and exactly one instance.
 - Ollama is reachable only on the private Docker network; the FastAPI container has no host port.
-- The only host ingress is TCP 8080 from `com.amazonaws.global.cloudfront.origin-facing`.
-- CloudFront adds an unguessable `X-SuperShield-Origin` value, which nginx requires. A different CloudFront distribution therefore cannot use the instance as an origin.
-- Viewer HTTP is redirected to HTTPS. Dynamic API and SSE responses are never cached.
+- The only host ingress is public TCP 80 to the rate-limited nginx gateway.
+- The temporary URL is HTTP because this AWS account is not verified to create CloudFront distributions. Use only the included synthetic fixtures; arbitrary uploads are disabled.
 - IMDSv2 is required with a hop limit of one, keeping instance credentials away from bridged containers.
 - Containers drop Linux capabilities, use bounded memory/CPU, rotate local logs, and use read-only filesystems where practical.
 - Session Manager is the only administrative route and is controlled by AWS IAM. Do not add an SSH rule.
@@ -46,7 +45,7 @@ A deployment around September 14 through the fixed cutoff is approximately **$64
 ## Prerequisites
 
 1. Independently verify that the AWS account is yours and is not Kariant-linked. Record the exact 12-digit account ID and the exact caller ARN from `aws sts get-caller-identity`.
-2. Use a principal permitted to manage the narrowly named CloudFormation stack and its EC2/VPC, IAM instance/Lambda roles, CloudFront, Lambda, EventBridge, CloudWatch Logs, and SSM public AMI parameter resources. It also needs `iam:PassRole` for the two generated service roles.
+2. Use a principal permitted to manage the narrowly named CloudFormation stack and its EC2/VPC, IAM instance/Lambda roles, Lambda, EventBridge, CloudWatch Logs, and SSM public AMI parameter resources. It also needs `iam:PassRole` for the two generated service roles.
 3. Install AWS CLI v2 and Git. The script uses the current committed Git SHA; commit and push the deployment assets before running it.
 4. Review current AWS prices and confirm that the remaining-hours estimate still fits the credits.
 
@@ -70,18 +69,18 @@ For an assumed role, pass its exact STS caller ARN. The script:
 2. prints and enforces a conservative sub-$75 cost plan;
 3. verifies both account ID and principal ARN;
 4. refuses to update an existing stack, so an update cannot silently reset expectations;
-5. resolves the regional CloudFront origin-facing prefix list;
+5. deploys only the new, tagged networking and compute resources;
 6. deploys the current immutable Git commit; and
 7. waits up to 30 minutes for `/health` while the instance builds the app and downloads/warm-loads Qwen.
 
-CloudFront creation and the first model pull are slow. The URL may return a transient 502 until bootstrap completes. A `t4g.large` is deliberately economical, so sustained inference will be slower after standard CPU credits are consumed.
+EC2 creation and the first model pull are slow. The URL may return a transient 502 until bootstrap completes. A `t4g.large` is deliberately economical, so sustained inference will be slower after standard CPU credits are consumed.
 
 ## Verify
 
 ```powershell
-./infra/verify-deployment.ps1 -BaseUrl 'https://YOUR_DISTRIBUTION.cloudfront.net'
+./infra/verify-deployment.ps1 -BaseUrl 'http://YOUR_EC2_PUBLIC_DNS'
 python evals/run_benchmark.py --adapter http `
-  --base-url 'https://YOUR_DISTRIBUTION.cloudfront.net' `
+  --base-url 'http://YOUR_EC2_PUBLIC_DNS' `
   --output evals/results/ec2-ollama-20260914.json
 ```
 
@@ -115,11 +114,11 @@ Delete early when judging is complete:
 
 PowerShell asks for confirmation because this destroys the exact tagged stack. For a non-interactive, already-reviewed run, add `-Confirm:$false`.
 
-If the automatic cutoff has already fired, the instance/root volume are gone and CloudFront is disabled; run the same teardown command to remove the remaining no-idle-cost resources. CloudFront deletion can take several minutes.
+If the automatic cutoff has already fired, the instance and root volume are gone; run the same teardown command to remove the remaining no-idle-cost resources.
 
 ## Operational limitations
 
 - The state store is intentionally ephemeral. A process or instance restart clears sessions and cases.
 - The first run loads the model and is slower. The boot process performs a warm-up before opening the gateway.
-- CloudFront custom origins have a bounded response timeout. SuperShield limits Ollama to one parallel request and nginx rate-limits run creation, but an overloaded or CPU-throttled instance can still time out.
+- SuperShield limits Ollama to one parallel request and nginx rate-limits run creation, but an overloaded or CPU-throttled instance can still time out.
 - This is a short-lived hackathon demo, not a production architecture. Production would use durable state, multiple instances, asynchronous jobs, managed secrets, WAF controls, and a custom domain with end-to-end TLS.

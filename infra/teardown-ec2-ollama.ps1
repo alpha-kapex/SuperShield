@@ -47,5 +47,5 @@ if ($PSCmdlet.ShouldProcess("AWS stack $stackName in account $ExpectedAccountId"
     if ($LASTEXITCODE -ne 0) { throw 'CloudFormation delete request failed.' }
     & aws cloudformation wait stack-delete-complete --region $Region --stack-name $stackName
     if ($LASTEXITCODE -ne 0) { throw 'CloudFormation stack deletion did not complete successfully.' }
-    Write-Host "Deleted $stackName. The EC2 instance, root volume, CloudFront distribution, network, and scoped IAM resources are removed."
+    Write-Host "Deleted $stackName. The EC2 instance, root volume, network, and scoped IAM resources are removed."
 }

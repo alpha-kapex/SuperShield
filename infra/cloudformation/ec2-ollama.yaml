@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Standalone SuperShield live demo on one EC2 instance with Strands and Ollama,
-  CloudFront HTTPS, no SSH, and an automatic post-results cost teardown.
+  direct HTTP access, no SSH, and an automatic post-results cost teardown.
 
 Parameters:
   Stage:
@@ -43,18 +43,6 @@ Parameters:
     Type: String
     Default: nginx:1.28-alpine
     AllowedPattern: '^[A-Za-z0-9._/-]+:[A-Za-z0-9._-]+$'
-  CloudFrontOriginPrefixListId:
-    Type: String
-    AllowedPattern: '^pl-[a-f0-9]+$'
-    Description: Region-specific ID for com.amazonaws.global.cloudfront.origin-facing.
-  OriginVerifySecret:
-    Type: String
-    NoEcho: true
-    MinLength: 32
-    MaxLength: 128
-    AllowedPattern: '^[A-Za-z0-9_-]+$'
-    Description: Random value added by CloudFront and required by the private origin proxy.
-
 Resources:
   Vpc:
     Type: AWS::EC2::VPC
@@ -115,14 +103,14 @@ Resources:
   OriginSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: CloudFront-only ingress to the SuperShield origin; no SSH.
+      GroupDescription: Public HTTP ingress to the rate-limited SuperShield demo; no SSH.
       VpcId: !Ref Vpc
       SecurityGroupIngress:
-        - Description: HTTPS edge to HTTP origin proxy
+        - Description: Public HTTP access to the SuperShield gateway
           IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          SourcePrefixListId: !Ref CloudFrontOriginPrefixListId
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - Description: Bootstrap packages, container images, model, SSM, and updates
           IpProtocol: '-1'
@@ -199,7 +187,6 @@ Resources:
           MODEL_ID='${OllamaModel}'
           OLLAMA_IMAGE='${OllamaImage}'
           NGINX_IMAGE='${NginxImage}'
-          ORIGIN_SECRET='${OriginVerifySecret}'
 
           dnf upgrade -y
           dnf install -y docker git openssl
@@ -281,7 +268,7 @@ Resources:
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $supershield_client_ip;
           proxy_set_header X-Forwarded-For $supershield_client_ip;
-          proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Proto http;
           proxy_buffering off;
           proxy_cache off;
           proxy_read_timeout 900s;
@@ -304,20 +291,12 @@ Resources:
             access_log /dev/stdout;
             server_tokens off;
 
-            map $http_cloudfront_viewer_address $supershield_client_ip {
-              "~^(?<cf_ipv4>[0-9.]+):[0-9]+$" $cf_ipv4;
-              "~^\[(?<cf_ipv6>[0-9A-Fa-f:]+)\]:[0-9]+$" $cf_ipv6;
-              default $remote_addr;
-            }
-
-            limit_req_zone $supershield_client_ip zone=model_runs:10m rate=6r/m;
-            limit_conn_zone $supershield_client_ip zone=per_client:10m;
+            limit_req_zone $binary_remote_addr zone=model_runs:10m rate=6r/m;
+            limit_conn_zone $binary_remote_addr zone=per_client:10m;
 
             server {
               listen 8080;
               client_max_body_size 300k;
-
-              if ($http_x_supershield_origin != "__ORIGIN_VERIFY_SECRET__") { return 403; }
 
               add_header X-Content-Type-Options nosniff always;
               add_header X-Frame-Options DENY always;
@@ -338,12 +317,11 @@ Resources:
             }
           }
           NGINX
-          sed -i "s|__ORIGIN_VERIFY_SECRET__|$ORIGIN_SECRET|g" /etc/supershield/nginx.conf
           chmod 0600 /etc/supershield/nginx.conf /etc/supershield/proxy.conf
 
           docker run --detach --name supershield-gateway --restart unless-stopped \
             --network supershield \
-            --publish 8080:8080 \
+            --publish 80:8080 \
             --read-only \
             --tmpfs /var/cache/nginx:size=32m \
             --tmpfs /var/run:size=4m \
@@ -358,73 +336,6 @@ Resources:
 
           docker exec supershield-gateway nginx -t
           touch /var/lib/cloud/instance/supershield-ready
-
-  DisabledCachePolicy:
-    Type: AWS::CloudFront::CachePolicy
-    Properties:
-      CachePolicyConfig:
-        Name: !Sub '${AWS::StackName}-disabled-cache'
-        Comment: Dynamic API and SSE responses must not be cached.
-        DefaultTTL: 0
-        MaxTTL: 0
-        MinTTL: 0
-        ParametersInCacheKeyAndForwardedToOrigin:
-          CookiesConfig: {CookieBehavior: none}
-          EnableAcceptEncodingBrotli: false
-          EnableAcceptEncodingGzip: false
-          HeadersConfig: {HeaderBehavior: none}
-          QueryStringsConfig: {QueryStringBehavior: none}
-
-  ForwardViewerPolicy:
-    Type: AWS::CloudFront::OriginRequestPolicy
-    Properties:
-      OriginRequestPolicyConfig:
-        Name: !Sub '${AWS::StackName}-forward-viewer'
-        Comment: Forward API inputs and the CloudFront viewer address for bounded rate limiting.
-        CookiesConfig: {CookieBehavior: all}
-        HeadersConfig:
-          HeaderBehavior: allViewerAndWhitelistCloudFront
-          Headers:
-            - CloudFront-Viewer-Address
-        QueryStringsConfig: {QueryStringBehavior: all}
-
-  Distribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Comment: !Sub 'SuperShield ${Stage} HTTPS demo'
-        DefaultCacheBehavior:
-          AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
-          CachePolicyId: !Ref DisabledCachePolicy
-          CachedMethods: [GET, HEAD, OPTIONS]
-          Compress: false
-          OriginRequestPolicyId: !Ref ForwardViewerPolicy
-          TargetOriginId: supershield-ec2
-          ViewerProtocolPolicy: redirect-to-https
-        DefaultRootObject: index.html
-        Enabled: true
-        HttpVersion: http2and3
-        IPV6Enabled: true
-        Origins:
-          - Id: supershield-ec2
-            DomainName: !GetAtt DemoInstance.PublicDnsName
-            ConnectionAttempts: 3
-            ConnectionTimeout: 10
-            CustomOriginConfig:
-              HTTPPort: 8080
-              OriginKeepaliveTimeout: 5
-              OriginProtocolPolicy: http-only
-              OriginReadTimeout: 60
-              OriginSSLProtocols: [TLSv1.2]
-            OriginCustomHeaders:
-              - HeaderName: X-SuperShield-Origin
-                HeaderValue: !Ref OriginVerifySecret
-        PriceClass: PriceClass_100
-        ViewerCertificate:
-          CloudFrontDefaultCertificate: true
-      Tags:
-        - {Key: Project, Value: SuperShield}
-        - {Key: Exposure, Value: curated-public-demo}
 
   TerminationLogGroup:
     Type: AWS::Logs::LogGroup
@@ -465,18 +376,14 @@ Resources:
           - Effect: Allow
             Action: ec2:TerminateInstances
             Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DemoInstance}'
-          - Effect: Allow
-            Action:
-              - cloudfront:GetDistributionConfig
-              - cloudfront:UpdateDistribution
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+
 
   TerminationFunction:
     Type: AWS::Lambda::Function
     DependsOn: TerminationPolicy
     Properties:
       FunctionName: !Sub 'supershield-${Stage}-expiry'
-      Description: Terminates compute and disables the public edge after the results cutoff.
+      Description: Terminates SuperShield compute after the results cutoff.
       Runtime: python3.12
       Handler: index.handler
       Role: !GetAtt TerminationRole.Arn
@@ -484,7 +391,6 @@ Resources:
       Environment:
         Variables:
           INSTANCE_ID: !Ref DemoInstance
-          DISTRIBUTION_ID: !Ref Distribution
       Code:
         ZipFile: |
           import os
@@ -493,20 +399,10 @@ Resources:
           def handler(event, context):
               instance_id = os.environ["INSTANCE_ID"]
               response = boto3.client("ec2").terminate_instances(InstanceIds=[instance_id])
-              distribution_id = os.environ["DISTRIBUTION_ID"]
-              cloudfront = boto3.client("cloudfront")
-              current = cloudfront.get_distribution_config(Id=distribution_id)
-              config = current["DistributionConfig"]
-              config["Enabled"] = False
-              cloudfront.update_distribution(
-                  Id=distribution_id,
-                  IfMatch=current["ETag"],
-                  DistributionConfig=config,
-              )
+
               return {
                   "instanceId": instance_id,
                   "state": response["TerminatingInstances"][0]["CurrentState"]["Name"],
-                  "distributionDisabled": True,
               }
       Tags:
         - {Key: Project, Value: SuperShield}
@@ -531,8 +427,8 @@ Resources:
 
 Outputs:
   PublicUrl:
-    Description: HTTPS URL using the CloudFront default certificate.
-    Value: !Sub 'https://${Distribution.DomainName}'
+    Description: Public HTTP URL for the short-lived hackathon demo.
+    Value: !Sub 'http://${DemoInstance.PublicDnsName}'
   InstanceId:
     Value: !Ref DemoInstance
   Model:
@@ -540,6 +436,6 @@ Outputs:
   AutomaticCostTeardownUtc:
     Value: '2026-10-16T06:00:00Z'
   CostGuardrail:
-    Value: At the cutoff the EC2 instance and encrypted root volume are terminated and CloudFront is disabled; run teardown to remove the remaining no-idle-cost stack resources.
+    Value: At the cutoff the EC2 instance and encrypted root volume are terminated; run teardown to remove the remaining no-idle-cost stack resources.
   SessionManagerCommand:
     Value: !Sub 'aws ssm start-session --region ${AWS::Region} --target ${DemoInstance}'
